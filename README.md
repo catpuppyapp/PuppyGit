@@ -14,7 +14,7 @@ PuppyGit made by Bandeapart1964 of catpuppyapp
 
 ## Demo Video:
 <a href=https://www.patreon.com/posts/puppygit-is-git-114679516>Clone A Repo</a> <br>
-<a href=https://www.patreon.com/posts/obisidian-114681158>Obisdian + PuppyGit</a> <br>
+<a href=https://www.patreon.com/posts/obisidian-114681158>Obisidian + PuppyGit</a> <br>
 <a href=https://www.patreon.com/posts/markor-puppygit-114681068>Markor + PuppyGit</a> <br>
 <a href=https://www.patreon.com/posts/puppygit-preview-124623047>Markdown Preview</a> <br>
 <a href=https://www.patreon.com/posts/puppygit-now-and-114680923>Switch DarkMode and Chinese</a><br>
