@@ -72,12 +72,14 @@ import com.catpuppyapp.puppygit.compose.LongPressAbleIconBtn
 import com.catpuppyapp.puppygit.compose.MySelectionContainer
 import com.catpuppyapp.puppygit.compose.SingleSelectList
 import com.catpuppyapp.puppygit.compose.InternalFileChooser
+import com.catpuppyapp.puppygit.compose.SystemFolderChooserSaf
 import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.constants.SpecialCredential
 import com.catpuppyapp.puppygit.data.entity.CredentialEntity
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
 import com.catpuppyapp.puppygit.dev.dev_EnableUnTestedFeature
 import com.catpuppyapp.puppygit.dev.shallowAndSingleBranchTestPassed
+import com.catpuppyapp.puppygit.etc.Ret
 import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.screen.content.homescreen.scaffold.title.ScrollableTitle
 import com.catpuppyapp.puppygit.screen.shared.SharedState
@@ -275,9 +277,9 @@ fun CloneScreen(
     val showAddStoragePathDialog = rememberSaveable { mutableStateOf(false)}
 
     val storagePathForAdd = rememberSaveable { SharedState.fileChooser_DirPath }
-//    val safEnabledForSystemFolderChooser = rememberSaveable { mutableStateOf(false)}
-//    val safPath = rememberSaveable { mutableStateOf("") }
-//    val nonSafPath = rememberSaveable { mutableStateOf("") }
+    val safEnabledForSystemFolderChooser = rememberSaveable { mutableStateOf(false)}
+    val safPath = rememberSaveable { mutableStateOf("") }
+    val nonSafPath = rememberSaveable { mutableStateOf("") }
 
 
     //vars of  storage select end
@@ -312,6 +314,9 @@ fun CloneScreen(
 
                         InternalFileChooser(path = storagePathForAdd)
 
+                        // test jni saf hook
+                        SystemFolderChooserSaf(safEnabled = safEnabledForSystemFolderChooser, safPath = safPath, nonSafPath = nonSafPath, path = storagePathForAdd, showSafSwitchButton = true)
+
                     }
                 }
             },
@@ -321,9 +326,10 @@ fun CloneScreen(
             onCancel = { showAddStoragePathDialog.value = false },
         ) {
             val storagePathForAdd = storagePathForAdd.value
+            val safEnabledForSystemFolderChooser = safEnabledForSystemFolderChooser.value
 
             doJobThenOffLoading {
-                val newPathRet = FsUtils.userInputPathToCanonical(storagePathForAdd)
+                val newPathRet = if(safEnabledForSystemFolderChooser) Ret.createSuccess(storagePathForAdd) else FsUtils.userInputPathToCanonical(storagePathForAdd)
 
                 if(newPathRet.hasError()) {
                     Msg.requireShow(activityContext.getString(R.string.invalid_path))

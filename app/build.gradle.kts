@@ -16,6 +16,9 @@ plugins {
 
 
 }
+
+apply(from = rootProject.file("gradle/prefab_bypass.gradle"))
+
 val dbSchemaLocation="$projectDir/schemas"
 room {
     schemaDirectory(dbSchemaLocation)
@@ -62,6 +65,8 @@ android {
                 arguments+= listOf("-DANDROID_STL=none")
             }
         }
+
+//        pickFirst '**/libbytehook.so'
         //这种写法虽看着像ksp代码块，但其实是给ksp方法传了个函数参数
 //        ksp{
 ////            arg("room.schemaLocation", dbSchemaLocation)
@@ -100,6 +105,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true  //不开这个不能用BuildConfig，我是为了用来获取versionName和versionCode
+        prefab = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
@@ -120,6 +126,9 @@ android {
 }
 
 dependencies {
+    implementation("com.bytedance:bytehook:1.1.1")
+
+
     // start: temporary markdown dependencies, remove when 'compose-markdown' support custom coilStore(for load image from relative path)
     val markwonVersion = "4.6.2"
     implementation("androidx.appcompat:appcompat:1.7.0")

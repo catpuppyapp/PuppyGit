@@ -81,6 +81,8 @@ add_library(${CMAKE_PROJECT_NAME}
 # android 自带
 find_library(LOG-LIB log)
 
+# bhook
+find_package(bytehook REQUIRED CONFIG)
 
 # set header files path
 #include_directories(${my_include_path})
@@ -104,4 +106,5 @@ target_link_libraries(
         crypto
         ssl
         ${LOG-LIB}
+        bytehook::bytehook
 )

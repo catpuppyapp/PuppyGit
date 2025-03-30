@@ -1,6 +1,8 @@
 package com.catpuppyapp.puppygit.jni;
 
 import android.util.Log;
+import com.bytedance.android.bytehook.ByteHook;
+import com.catpuppyapp.puppygit.utils.saf.SafFile;
 
 
 public class LibLoader {
@@ -16,7 +18,14 @@ public class LibLoader {
 //        System.loadLibrary("git24j");
         System.loadLibrary("puppygit");
 
-        Log.d(TAG, "c libs loaded");
+        Log.d(TAG, "c libs loaded, will load bhook");
+
+
+        int initResult = ByteHook.init();
+        System.out.println("`ByteHook.init()` initResult = "+initResult);
+        SafFile.nativeHookFile("libgit2.so", null);
+
+        Log.d(TAG, "bhook loaded");
 
     }
 
