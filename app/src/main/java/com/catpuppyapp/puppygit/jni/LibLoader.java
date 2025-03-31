@@ -7,6 +7,7 @@ import com.catpuppyapp.puppygit.utils.saf.SafFile;
 
 public class LibLoader {
     private static final String TAG="LibLoader";
+    static boolean safHookJni = false;
 
     static {
         Log.d(TAG, "loading c libs...");
@@ -18,15 +19,18 @@ public class LibLoader {
 //        System.loadLibrary("git24j");
         System.loadLibrary("puppygit");
 
-        Log.d(TAG, "c libs loaded, will load bhook");
+        Log.d(TAG, "c libs loaded");
 
+        if(safHookJni) {
+            Log.d(TAG, "safHookJni init");
 
-        int initResult = ByteHook.init();
-        Log.d(TAG, "`ByteHook.init()` initResult = "+initResult);
-        SafFile.nativeHookFile("libgit2.so", null);
-        SafFile.nativeInitSafJavaCallbacks();
+            int initResult = ByteHook.init();
+            Log.d(TAG, "`ByteHook.init()` initResult = "+initResult);
+            SafFile.nativeHookFile("libgit2.so", null);
+            SafFile.nativeInitSafJavaCallbacks();
 
-        Log.d(TAG, "bhook loaded");
+            Log.d(TAG, "safHookJni finished");
+        }
 
     }
 
