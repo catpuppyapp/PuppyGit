@@ -129,6 +129,7 @@ public class SafFile {
      * @return
      */
     public static int mkdir(final String curdir, final String filename, int mode) {
+        Log.d(LOGTAG, "curdir="+curdir+", filename="+filename);
         if (filename == null || filename.length()==0)
             return 0;
         String fullpath = null;
@@ -360,8 +361,9 @@ public class SafFile {
         DocumentFile base = null;
         Uri docUri = null;
         final String p = share.getString("docUri", null);
-        if (p != null)
-            docUri = Uri.parse(p);
+        if (p != null) docUri = Uri.parse(p);
+        Log.d(LOGTAG, "uriStr="+p+", base="+base);
+
         base = DocumentFile.fromTreeUri(context, docUri);
         return base;
     }

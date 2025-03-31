@@ -102,6 +102,16 @@ FILE *fopen_saf(const char *pathname, const char *mode)
 
 int mkdir_saf(const char *pathname, mode_t mode)
 {
+    //不行，实际就算通过saf创建创建路径成功，那libgit2后面还是要cd到对应目录，然后开始创建文件，
+    // 所以，我必须再hook cd函数，还得hook getcwd()函数，太麻烦了，而且影响难以评估，如果只是通过jni调用saf创建个文件之类的，还比较好弄，我这个需求要改的东西太多，算了，放弃了。
+    // 这个他妈傻逼saf uri，既不支持java的File，又不支持c的fopen，要这逼玩意有毛用？还他妈不如直接弄个path再搞的针对进程的权限控制，既简单兼容性又好，他妈的傻逼谷歌，
+    // 还有不允许在/storage/emulated/0下的文件拥有执行权限也是他妈的傻逼设计，在开发者模式加个开关也比直接不让加权限好，用户的设备爱给谁权限给谁权限，傻逼谷歌管那么多干嘛？
+    // 以上两者若满足前者（saf兼容File/fopen），则可无痛克隆仓库到app私有空间；若满足后者，则根本不需要克隆到私有空间（满足termux用户执行脚本的需求）。
+    // 但现实是两者都不满足。
+
+    // test
+    // char* pathname = "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FRepos/testCreateBySafHook";
+
     LOGI("mkdir_saf, called");
     int ret = BYTEHOOK_CALL_PREV(mkdir_saf, mkdir_t, pathname, mode);
 
