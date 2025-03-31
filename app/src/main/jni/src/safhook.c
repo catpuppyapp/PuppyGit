@@ -104,10 +104,10 @@ int mkdir_saf(const char *pathname, mode_t mode)
 {
     LOGI("mkdir_saf, called");
     int ret = BYTEHOOK_CALL_PREV(mkdir_saf, mkdir_t, pathname, mode);
-    BYTEHOOK_POP_STACK();
 
     LOGI("mkdir_saf, called_2, ret=%d", ret);
     if(ret == 0) {
+        BYTEHOOK_POP_STACK();
         return ret;
     }
 
@@ -133,6 +133,8 @@ int mkdir_saf(const char *pathname, mode_t mode)
     ret = (*env)->CallStaticIntMethod(env, g_javaClass, g_javaMkdir, s_curdir, s_pathname, mode);
     (*env)->DeleteLocalRef(env, s_curdir);
     (*env)->DeleteLocalRef(env, s_pathname);
+
+    BYTEHOOK_POP_STACK();
     return ret;
 }
 

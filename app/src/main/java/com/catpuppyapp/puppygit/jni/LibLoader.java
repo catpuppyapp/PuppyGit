@@ -22,8 +22,9 @@ public class LibLoader {
 
 
         int initResult = ByteHook.init();
-        System.out.println("`ByteHook.init()` initResult = "+initResult);
+        Log.d(TAG, "`ByteHook.init()` initResult = "+initResult);
         SafFile.nativeHookFile("libgit2.so", null);
+        SafFile.nativeInitSafJavaCallbacks();
 
         Log.d(TAG, "bhook loaded");
 
