@@ -6,6 +6,9 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 
 /**
+* TODO 把这个类的函数改成调用libgit2的api以兼容sha256
+*
+* 
  * An Oid is a 20 bytes array (each byte coded 32bit), or a 40 hex characters string (16 bit coded)
  */
 public class Oid {
