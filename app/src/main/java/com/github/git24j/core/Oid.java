@@ -7,7 +7,13 @@ import java.util.Arrays;
 
 /**
 * TODO 把这个类的函数改成调用libgit2的api以兼容sha256
-*
+* TODO 如果支持sha256还有个潜在的问题：如果一个仓库混合sha256和sha1怎么办？
+*  若直接用sha1的全0 oid理论上有可能会出错，但概率不大。最好判断下，先取head，如果是256就用256的全0oid，否则用sha1的全0oid，若不确定就用sha1。
+*  代码修改：需要在Cons里添加个sha256的全0oid。
+* TODO Files 的 init repo也需要调整，让用户选择是创建sha1的还是sha256的仓库，最好是能选，不能选的话，默认应该是sha1？未测试。
+* TODO 虽然sha1理论上会存在冲突，但ipv4理论上还会耗尽呢，不也一样没被淘汰，已经投入使用的东西，只要能用且没有硬伤，就很难被彻底替换，
+*  而且对于普通用户来说，遇到sha1冲突的概率很低（md5比sha1更容易发生冲突，但实际上我连md5冲突都没遇到过），所以我觉得sha256至少5年内（2030年之前）不会全面替换sha1，换句话说这个功能可以先鸽了，
+*  除非特别多用户要求这个功能或者我收到很多赞助然后充满动力去写各种偏门功能，否则预计一时半会不用做这个功能。
 * 
  * An Oid is a 20 bytes array (each byte coded 32bit), or a 40 hex characters string (16 bit coded)
  */
