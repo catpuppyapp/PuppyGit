@@ -12,7 +12,7 @@ public class LibLoader {
         System.loadLibrary("crypto");
         System.loadLibrary("ssl");
         System.loadLibrary("ssh2");
-        System.loadLibrary("git2");
+        System.loadLibrary("git2-experimental");
 //        System.loadLibrary("git24j");
         System.loadLibrary("puppygit");
 

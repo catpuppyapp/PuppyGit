@@ -189,7 +189,7 @@ for arch in $archs; do
 
     $CMAKE_PATH --build . --target install
 
-    cp -f $prefix/lib/libgit2-experimental.so $liboutdir/libgit2.so
+    cp -f $prefix/lib/libgit2-experimental.so $liboutdir/libgit2-experimental.so
     # libgit2 done
     echo "end build libgit2"
 

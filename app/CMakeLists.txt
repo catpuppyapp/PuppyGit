@@ -23,7 +23,7 @@ add_library(git2
 
 set_target_properties(git2
         PROPERTIES IMPORTED_LOCATION
-        ${my_lib_path}/${ANDROID_ABI}/libgit2.so
+        ${my_lib_path}/${ANDROID_ABI}/libgit2-experimental.so
 )
 
 ## 要引用的lib
