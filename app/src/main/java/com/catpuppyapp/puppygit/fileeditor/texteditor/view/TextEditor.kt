@@ -1114,6 +1114,7 @@ fun TextEditor(
                             .then(modifier)
                     ) {
                         MyTextField(
+                            codeEditor = textEditorState.codeEditor,
                             scrollIfInvisible = {
                                 scrollIfIndexInvisible(index)
                             },

@@ -78,4 +78,11 @@ data class Editor (
      * true to use system fonts, else will use app bundled fonts
      */
     var useSystemFonts: Boolean = false,
+
+    /**
+     * if true, input opened symbol, will auto add closed, e.g. input '{', auto add '}',
+     *   support surround selection range, e.g. selection 'abc', then input '"',
+     *   will output '"abc"', (doesn't include single quote sign)
+     */
+    var autoCloseSymbolPair: Boolean = true,
 )

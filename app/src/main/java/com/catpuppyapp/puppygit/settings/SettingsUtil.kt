@@ -315,5 +315,6 @@ object SettingsUtil {
     fun isCommitMsgPreviewModeOn() = appSettings.commitMsgPreviewModeOn
     fun isCommitMsgUseSystemFonts() = appSettings.commitMsgUseSystemFonts
     fun isEnabledDetailsCompareForDiff() = appSettings.diff.enableDetailsCompare
+    fun isEditorAutoCloseSymbolPairEnabled() = appSettings.editor.autoCloseSymbolPair
 
 }

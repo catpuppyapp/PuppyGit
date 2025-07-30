@@ -259,6 +259,12 @@ dependencies {
     //对应组件的实际版本号，参见：https://developer.android.com/develop/ui/compose/bom/bom-mapping
     val composeBom = platform("androidx.compose:compose-bom:2025.07.00")
 
+    // BEGIN: for support annotated string in `BasicTextField`
+    // it can be removed, after new compose version released
+    implementation("androidx.compose.foundation:foundation:1.9.0-beta03")
+    // END: for support annotated string in `BasicTextField`
+
+
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.activity:activity-compose:1.10.1")
