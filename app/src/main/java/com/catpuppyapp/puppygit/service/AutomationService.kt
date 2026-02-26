@@ -213,7 +213,7 @@ class AutomationService: BaseAccessibilityService() {
 
         if(event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             //必须在外部获取，放到协程里会null
-            val packageName = event.packageName.toString()
+            val packageName = event.packageName?.toString() ?: return
 
             if(AppModel.devModeOn) {
                 MyLog.v(TAG, "TYPE_WINDOW_STATE_CHANGED: $packageName")
