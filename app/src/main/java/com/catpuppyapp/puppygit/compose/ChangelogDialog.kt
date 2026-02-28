@@ -15,8 +15,8 @@ import com.catpuppyapp.puppygit.utils.AppModel
 
 
 private val changelog = """
-- try to fix git global username and email lost sometimes
-- 尝试修复全局git用户名和邮箱有时丢失的bug
+- try to fix automation service crash (pr #123, contributor @jiesou)
+- 尝试修复自动服务崩溃 (pr #123, 贡献者 @jiesou)
 """.trimIndent()
 
 

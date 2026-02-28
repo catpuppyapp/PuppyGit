@@ -40,8 +40,8 @@ android {
         //ndk编译的库不能大于minSdk值，否则会不支持
         minSdk = 26 //26，安卓8(Oreo, O)
         targetSdk = 36
-        versionCode = 122
-        versionName = "1.1.4.6"
+        versionCode = 123
+        versionName = "1.1.4.7"
 
 
         //这两个file provider的值必须一样
