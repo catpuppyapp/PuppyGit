@@ -1,0 +1,1 @@
+- try to fix automation service crash (pr #124, contributor @jiesou)
