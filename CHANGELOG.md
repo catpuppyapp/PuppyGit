@@ -3,11 +3,11 @@
 
 ---
 1.1.4.7v123 - 20260228:
-- try to fix automation service crash (pr #123, contributor @jiesou)
+- try to fix automation service crash (pr #124, contributor @jiesou)
 
 
 
-- 尝试修复自动服务崩溃 (pr #123, 贡献者 @jiesou)
+- 尝试修复自动服务崩溃 (pr #124, 贡献者 @jiesou)
 
 ---
 1.1.4.6v122 - 20260215:
