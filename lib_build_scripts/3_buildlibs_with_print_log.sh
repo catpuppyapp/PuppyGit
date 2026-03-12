@@ -151,7 +151,7 @@ for arch in $archs; do
     mkdir -p $build_out_tmp
     cd $build_out_tmp
     # cmake .. --preset android
-    $CMAKE_PATH .. -DCMAKE_TOOLCHAIN_FILE=$toolchainfile -DANDROID_ABI=$cur_android_abi -DANDROID_PLATFORM="android-$android_target_abi" -DCMAKE_INSTALL_PREFIX=$prefix -DOPENSSL_TARGET_PLATFORM=$opensslarch -DOPENSSL_CONFIGURE_OPTIONS="-D__ANDROID_API__=$android_target_abi;--openssldir=$prefix/ssl;--prefix=$prefix;no-asm" -DOPENSSL_INSTALL=TRUE -DOPENSSL_PATCH="$openssl_cmake/patch/android.patch" -DBUILD_SHARED_LIBS=ON -DOPENSSL_SOURCE=$opensslsrc
+    $CMAKE_PATH .. -DCMAKE_TOOLCHAIN_FILE=$toolchainfile -DANDROID_ABI=$cur_android_abi -DANDROID_PLATFORM="android-$android_target_abi" -DCMAKE_INSTALL_PREFIX=$prefix -DOPENSSL_TARGET_PLATFORM=$opensslarch -DOPENSSL_CONFIGURE_OPTIONS="-D__ANDROID_API__=$android_target_abi;--openssldir=$prefix/ssl;--prefix=$prefix" -DOPENSSL_INSTALL=TRUE -DOPENSSL_PATCH="$openssl_cmake/patch/android.patch" -DBUILD_SHARED_LIBS=ON -DOPENSSL_SOURCE=$opensslsrc
 
     $CMAKE_PATH --build . --target install
 
