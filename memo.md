@@ -7,7 +7,7 @@
 
 ---
 更新app流程 20260822：
-更新 app/build.gradle.kts 中的版本versionCode和versionName
+更新 app/build.gradle.kts 中的版本 versionCode 和 versionName
 更新 CHANGELOG.md 日志
 更新 ChangeDialog.kt 中的日志
 更新 fastlane 下的 新版本号.txt
