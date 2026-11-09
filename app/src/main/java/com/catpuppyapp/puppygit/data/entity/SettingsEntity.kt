@@ -14,4 +14,4 @@ data class SettingsEntity(
 
     @Embedded
     var baseFields: BaseFields = BaseFields(),
-    )
+)

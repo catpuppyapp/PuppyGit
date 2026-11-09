@@ -44,4 +44,6 @@ interface SettingsDao {
     @Query("SELECT * from settings where usedFor=:usedFor")
     suspend fun getByUsedFor(usedFor:Int): SettingsEntity?
 
+    @Query("UPDATE settings set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)")
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 }

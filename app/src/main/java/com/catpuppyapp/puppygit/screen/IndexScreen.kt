@@ -1,17 +1,15 @@
 package com.catpuppyapp.puppygit.screen
 
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.VerticalAlignTop
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -21,8 +19,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import com.catpuppyapp.puppygit.compose.FilterTextField
+import com.catpuppyapp.puppygit.compose.GoToTopAndGoToBottomFab
 import com.catpuppyapp.puppygit.compose.LongPressAbleIconBtn
-import com.catpuppyapp.puppygit.compose.SmallFab
 import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
 import com.catpuppyapp.puppygit.git.StatusTypeEntrySaver
@@ -30,16 +28,17 @@ import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.screen.content.homescreen.innerpage.ChangeListInnerPage
 import com.catpuppyapp.puppygit.screen.content.homescreen.scaffold.actions.ChangeListPageActions
 import com.catpuppyapp.puppygit.screen.content.homescreen.scaffold.title.IndexScreenTitle
+import com.catpuppyapp.puppygit.screen.functions.ChangeListFunctions
+import com.catpuppyapp.puppygit.screen.shared.SharedState
+import com.catpuppyapp.puppygit.settings.SettingsUtil
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.utils.AppModel
-import com.catpuppyapp.puppygit.utils.Msg
-import com.catpuppyapp.puppygit.utils.UIHelper
-import com.catpuppyapp.puppygit.utils.changeStateTriggerRefreshPage
-import com.catpuppyapp.puppygit.utils.state.StateUtil
+import com.catpuppyapp.puppygit.utils.cache.Cache
+import com.catpuppyapp.puppygit.utils.state.mutableCustomStateListOf
+import com.catpuppyapp.puppygit.utils.state.mutableCustomStateOf
 import com.github.git24j.core.Repository
 
-private val TAG = "IndexScreen"
-private val stateKeyTag = "IndexScreen"
+private const val TAG = "IndexScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,52 +53,66 @@ fun IndexScreen(
     naviUp: () -> Unit
 ) {
 
+    val stateKeyTag = Cache.getSubPageKey(TAG)
 
-    val navController = AppModel.singleInstanceHolder.navController
-    val homeTopBarScrollBehavior = AppModel.singleInstanceHolder.homeTopBarScrollBehavior
+    val navController = AppModel.navController
+    val homeTopBarScrollBehavior = AppModel.homeTopBarScrollBehavior
 
-    val allRepoParentDir = AppModel.singleInstanceHolder.allRepoParentDir
+    val allRepoParentDir = AppModel.allRepoParentDir
     val scope = rememberCoroutineScope()
 
+    val settings = remember {SettingsUtil.getSettingsSnapshot()}
 
     //替换成我的cusntomstateSaver，然后把所有实现parcellzier的类都取消实现parcellzier，改成用我的saver
 //    val curRepo = rememberSaveable{ mutableStateOf(RepoEntity()) }
 //    val curRepo = mutableCustomStateOf(value = RepoEntity())
 
-    val changeListRefreshRequiredByParentPage = rememberSaveable { mutableStateOf("") }
-    val changeListRequireRefreshFromParentPage = {
-        //TODO 显示个loading遮罩啥的
-        changeStateTriggerRefreshPage(changeListRefreshRequiredByParentPage)
+    val changeListRefreshRequiredByParentPage = rememberSaveable { SharedState.indexChangeList_Refresh }
+    val changeListRequireRefreshFromParentPage = { whichRepoRequestRefresh:RepoEntity ->
+        ChangeListFunctions.changeListDoRefresh(changeListRefreshRequiredByParentPage, whichRepoRequestRefresh)
     }
 //    val changeListCurRepo = rememberSaveable{ mutableStateOf(RepoEntity()) }
-    val changeListCurRepo = StateUtil.getCustomSaveableState(keyTag = stateKeyTag, keyName = "changeListCurRepo", initValue = RepoEntity(id=""))
-    val changeListIsShowRepoList = StateUtil.getRememberSaveableState(initValue = false)
-    val changeListPageHasIndexItem = StateUtil.getRememberSaveableState(initValue = false)
+    val changeListCurRepo = mutableCustomStateOf(keyTag = stateKeyTag, keyName = "changeListCurRepo", initValue = RepoEntity(id=""))
+    val changeListIsShowRepoList = rememberSaveable { mutableStateOf(false)}
+    val changeListPageHasIndexItem = rememberSaveable { mutableStateOf(false)}
     val changeListShowRepoList = {
         changeListIsShowRepoList.value = true
     }
-    val changeListIsFileSelectionMode = StateUtil.getRememberSaveableState(initValue = false)
-    val changeListPageNoRepo = StateUtil.getRememberSaveableState(initValue = false)
-    val changeListPageHasNoConflictItems = StateUtil.getRememberSaveableState(initValue = false)
+    val changeListIsFileSelectionMode = rememberSaveable { mutableStateOf( false)}
+    val changeListPageNoRepo = rememberSaveable { mutableStateOf( false)}
+    val changeListPageHasNoConflictItems = rememberSaveable { mutableStateOf(false)}
 
-    val changeListPageRebaseCurOfAll = StateUtil.getRememberSaveableState(initValue = "")
+    val changeListPageRebaseCurOfAll = rememberSaveable { mutableStateOf( "")}
+    val changeListNaviTarget = rememberSaveable { mutableStateOf(Cons.ChangeListNaviTarget_InitValue)}
 
 
-    val changeListPageFilterKeyWord = StateUtil.getCustomSaveableState(
+
+    val changeListPageFilterKeyWord = mutableCustomStateOf(
         keyTag = stateKeyTag,
         keyName = "changeListPageFilterKeyWord",
         initValue = TextFieldValue("")
     )
-    val changeListPageFilterModeOn = StateUtil.getRememberSaveableState(initValue = false)
+    val changeListPageFilterModeOn = rememberSaveable { mutableStateOf(false)}
 
-    val changelistFilterListState = StateUtil.getCustomSaveableState(
-        keyTag = stateKeyTag,
-        keyName = "changelistFilterListState"
-    ) {
-        LazyListState(0,0)
+    // start: search states
+    val changeListLastSearchKeyword = rememberSaveable { mutableStateOf("") }
+    val changeListSearchToken = rememberSaveable { mutableStateOf("") }
+    val changeListSearching = rememberSaveable { mutableStateOf(false) }
+    val resetChangeListSearchVars = {
+        changeListSearching.value = false
+        changeListSearchToken.value = ""
+        changeListLastSearchKeyword.value = ""
     }
+    // end: search states
 
-    val swap = StateUtil.getRememberSaveableState(initValue = false)
+//    val changelistFilterListState = mutableCustomStateOf(keyTag = stateKeyTag, keyName = "changelistFilterListState", LazyListState(0,0))
+    val changelistFilterListState = rememberLazyListState()
+
+    val swap =rememberSaveable { mutableStateOf(false)}
+
+    val changeListErrScrollState = rememberScrollState()
+    val changeListHasErr = rememberSaveable { mutableStateOf(false) }
+    val changeListErrLastPosition = rememberSaveable { mutableStateOf(0) }
 
 //    val editorPageRequireOpenFilePath = rememberSaveable{ mutableStateOf("") } // canonicalPath
 ////    val needRefreshFilesPage = rememberSaveable { mutableStateOf(false) }
@@ -118,34 +131,33 @@ fun IndexScreen(
 //    val needRefreshEditorPage = rememberSaveable { mutableStateOf("") }
 //    val changeListRequirePull = rememberSaveable { mutableStateOf(false) }
 //    val changeListRequirePush = rememberSaveable { mutableStateOf(false) }
-    val requireDoActFromParent = StateUtil.getRememberSaveableState(initValue = false)
-    val requireDoActFromParentShowTextWhenDoingAct = StateUtil.getRememberSaveableState(initValue = "")
-    val enableAction = StateUtil.getRememberSaveableState(initValue = true)
-    val repoState = StateUtil.getRememberSaveableIntState(initValue = Repository.StateT.NONE.bit)  //初始状态是NONE，后面会在ChangeListInnerPage检查并更新状态，只要一创建innerpage或刷新（重新执行init），就会更新此状态
+    val requireDoActFromParent = rememberSaveable { mutableStateOf(false)}
+    val requireDoActFromParentShowTextWhenDoingAct = rememberSaveable { mutableStateOf("")}
+    val enableAction = rememberSaveable { mutableStateOf(true)}
+    val repoState = rememberSaveable{mutableIntStateOf(Repository.StateT.NONE.bit)}  //初始状态是NONE，后面会在ChangeListInnerPage检查并更新状态，只要一创建innerpage或刷新（重新执行init），就会更新此状态
     val fromTo = Cons.gitDiffFromHeadToIndex
-    val changeListPageItemList = StateUtil.getCustomSaveableStateList(keyTag = stateKeyTag, keyName = "changeListPageItemList", initValue = listOf<StatusTypeEntrySaver>())
-    val changeListPageItemListState = StateUtil.getRememberLazyListState()
-    val changeListPageSelectedItemList = StateUtil.getCustomSaveableStateList(keyTag = stateKeyTag, keyName = "changeListPageSelectedItemList", initValue = listOf<StatusTypeEntrySaver>())
-    val changelistPageScrollingDown = remember { mutableStateOf(false) }
+    val changeListPageItemList = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "changeListPageItemList", initValue = listOf<StatusTypeEntrySaver>())
+    val changeListPageItemListState = rememberLazyListState()
+    val changeListPageSelectedItemList = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "changeListPageSelectedItemList", initValue = listOf<StatusTypeEntrySaver>())
+    val changelistPageScrolled = rememberSaveable { mutableStateOf(settings.showNaviButtons) }
+    val changelistNewestPageId = rememberSaveable { mutableStateOf("") }
+    val changeListPageEnableFilterState = rememberSaveable { mutableStateOf(false)}
+    val changeListFilterList = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "changeListFilterList", initValue = listOf<StatusTypeEntrySaver>())
+    val changeListLastClickedItemKey = rememberSaveable{ SharedState.index_LastClickedItemKey }
+
+    val filterLastPosition = rememberSaveable { mutableStateOf(0) }
+    val lastPosition = rememberSaveable { mutableStateOf(0) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(homeTopBarScrollBehavior.nestedScrollConnection),
         topBar = {
-            //TODO 这个东西也要根据选择哪个抽屉菜单条目而变化
-            //TODO 要能在向上滚动时，隐藏这个topbar，向下滚动时，显示出来
-            //TODO Editor时，在右隐藏侧栏显示文件名怎么样？
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
+                colors = MyStyleKt.TopBar.getColors(),
                 title = {
                     if(changeListPageFilterModeOn.value) {
-                        FilterTextField(
-                            changeListPageFilterKeyWord,
-                        )
+                        FilterTextField(filterKeyWord = changeListPageFilterKeyWord, loading = changeListSearching.value)
                     }else {
-                        IndexScreenTitle(changeListCurRepo, repoState, scope, changeListPageItemListState)
+                        IndexScreenTitle(changeListCurRepo, repoState, scope, changeListPageItemListState, lastPosition)
                     }
                 },
                 navigationIcon = {
@@ -156,6 +168,7 @@ fun IndexScreen(
                             iconContentDesc = stringResource(R.string.close),
 
                         ) {
+                            resetChangeListSearchVars()
                             changeListPageFilterModeOn.value = false
                         }
                     }else {
@@ -170,6 +183,7 @@ fun IndexScreen(
                     }
 
                 },
+
                 actions = {
                     if(!changeListPageFilterModeOn.value) {
                         ChangeListPageActions(
@@ -187,8 +201,8 @@ fun IndexScreen(
                             hasNoConflictItems = changeListPageHasNoConflictItems.value,
                             changeListPageFilterModeOn=changeListPageFilterModeOn,
                             changeListPageFilterKeyWord=changeListPageFilterKeyWord,
-                            rebaseCurOfAll = changeListPageRebaseCurOfAll.value
-
+                            rebaseCurOfAll = changeListPageRebaseCurOfAll.value,
+                            naviTarget = changeListNaviTarget
                         )
 
                     }
@@ -197,18 +211,26 @@ fun IndexScreen(
             )
         },
         floatingActionButton = {
-            if(changelistPageScrollingDown.value) {
-                //向下滑动时显示go to top按钮
-                SmallFab(
-                    modifier = MyStyleKt.Fab.getFabModifier(),
-                    icon = Icons.Filled.VerticalAlignTop, iconDesc = stringResource(id = R.string.go_to_top)
-                ) {
-                    if(changeListPageFilterModeOn.value) {
-                        UIHelper.scrollToItem(scope, changelistFilterListState.value, 0)
-                    }else {
-                        UIHelper.scrollToItem(scope, changeListPageItemListState, 0)
-                    }
+            if(changelistPageScrolled.value) {
+                if(changeListHasErr.value) {
+                    GoToTopAndGoToBottomFab(
+                        scope = scope,
+                        listState = changeListErrScrollState,
+                        listLastPosition = changeListErrLastPosition,
+                        showFab = changelistPageScrolled
+                    )
+                }else {
+                    GoToTopAndGoToBottomFab(
+                        filterModeOn = changeListPageEnableFilterState.value,
+                        scope = scope,
+                        filterListState = changelistFilterListState,
+                        listState = changeListPageItemListState,
+                        filterListLastPosition = filterLastPosition,
+                        listLastPosition = lastPosition,
+                        showFab = changelistPageScrolled
+                    )
                 }
+
             }
         }
     ) { contentPadding ->
@@ -216,26 +238,41 @@ fun IndexScreen(
 //        val commitParentList = remember { mutableStateListOf<String>() }
 
         ChangeListInnerPage(
-            contentPadding,
-            fromTo,
-            changeListCurRepo,
-            changeListIsFileSelectionMode,
+//            stateKeyTag = Cache.combineKeys(stateKeyTag, "ChangeListInnerPage"),
+            stateKeyTag = stateKeyTag,
 
-            changeListRefreshRequiredByParentPage,
-            changeListPageHasIndexItem,
+            errScrollState = changeListErrScrollState,
+            hasError = changeListHasErr,
+
+            commit1OidStr = Cons.git_HeadCommitHash,
+            commit2OidStr = Cons.git_IndexCommitHash,
+
+            lastSearchKeyword=changeListLastSearchKeyword,
+            searchToken=changeListSearchToken,
+            searching=changeListSearching,
+            resetSearchVars=resetChangeListSearchVars,
+
+            contentPadding = contentPadding,
+            fromTo = fromTo,
+            curRepoFromParentPage = changeListCurRepo,
+            isFileSelectionMode = changeListIsFileSelectionMode,
+
+            refreshRequiredByParentPage = changeListRefreshRequiredByParentPage.value,
+            changeListRequireRefreshFromParentPage = changeListRequireRefreshFromParentPage,
+            changeListPageHasIndexItem = changeListPageHasIndexItem,
 //                requirePullFromParentPage = changeListRequirePull,
 //                requirePushFromParentPage = changeListRequirePush,
-            requireDoActFromParent,
-            requireDoActFromParentShowTextWhenDoingAct,
-            enableAction,
-            repoState,
+            requireDoActFromParent = requireDoActFromParent,
+            requireDoActFromParentShowTextWhenDoingAct = requireDoActFromParentShowTextWhenDoingAct,
+            enableActionFromParent = enableAction,
+            repoState = repoState,
             naviUp=naviUp,
             itemList = changeListPageItemList,
             itemListState = changeListPageItemListState,
             selectedItemList = changeListPageSelectedItemList,
             changeListPageNoRepo=changeListPageNoRepo,
             hasNoConflictItems = changeListPageHasNoConflictItems,
-            changelistPageScrollingDown=changelistPageScrollingDown,
+            changelistPageScrolled=changelistPageScrolled,
             changeListPageFilterModeOn= changeListPageFilterModeOn,
             changeListPageFilterKeyWord=changeListPageFilterKeyWord,
             filterListState = changelistFilterListState,
@@ -243,6 +280,13 @@ fun IndexScreen(
             commitForQueryParents = "",
             rebaseCurOfAll = changeListPageRebaseCurOfAll,
             openDrawer = {}, //非顶级页面按返回键不需要打开抽屉
+            newestPageId = changelistNewestPageId,
+            naviTarget = changeListNaviTarget,
+            enableFilterState = changeListPageEnableFilterState,
+            filterList = changeListFilterList,
+            lastClickedItemKey = changeListLastClickedItemKey
+
+
 //            commit1OidStr=commit1OidStr,
 //            commitParentList=commitParentList
         )

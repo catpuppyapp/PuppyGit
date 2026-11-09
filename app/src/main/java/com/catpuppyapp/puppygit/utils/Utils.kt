@@ -1,30 +1,58 @@
 package com.catpuppyapp.puppygit.utils
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.media.MediaMetadataRetriever
+import android.os.Build
 import android.widget.Toast
+import androidx.annotation.WorkerThread
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmapOrNull
 import com.catpuppyapp.puppygit.constants.Cons
+import com.catpuppyapp.puppygit.constants.IndentChar
 import com.catpuppyapp.puppygit.data.entity.ErrorEntity
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
+import com.catpuppyapp.puppygit.dto.AppInfo
+import com.catpuppyapp.puppygit.dto.LineNumParseResult
+import com.catpuppyapp.puppygit.dto.rawAppInfoToAppInfo
 import com.catpuppyapp.puppygit.etc.Ret
 import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.screen.shared.FuckSafFile
+import com.catpuppyapp.puppygit.settings.AppSettings
+import com.catpuppyapp.puppygit.settings.DirViewAndSort
+import com.catpuppyapp.puppygit.settings.SettingsUtil
+import com.github.git24j.core.Repository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.attribute.BasicFileAttributes
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
+import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 import kotlin.io.path.exists
+import kotlin.math.absoluteValue
 
-private val TAG = "Utils"
+
+private const val TAG = "Utils"
 
 
 fun showToast(context: Context, text:String, duration:Int=Toast.LENGTH_SHORT) {
@@ -47,12 +75,14 @@ fun getRepoNameFromGitUrl(gitUrl: String):String{
 //    return path.removeSuffix(suffix)
 //}
 
-//baseDir可以为null，若为null，相当于 File(subDir)，若baseDir为null，不要用空字符串替代，含义不同
+/**
+ *  baseDir可以为null，若为null，相当于 File(subDir)，若baseDir为null，不要用空字符串替代，含义不同
+ */
 fun isPathExists(baseDir: String?, subDir:String):Boolean {
 //    val repoDirNoSeparatorSuffix = rmPathSuffix(repoDir)
 //    val subDirNoSeparatorSuffix = rmPathSuffix(subdir)
 //    val file = File(repoDirNoSeparatorSuffix + File.separator + subDirNoSeparatorSuffix)
-    val file = File(baseDir, subDir)  //baseDir可为null，若为null，相当于File(subDir)，注意，这里该为null就为null，不要传空字符串，空字符串和null作为basedir时，行为不同
+    val file = if(baseDir!=null) File(baseDir, subDir) else File(subDir)  //baseDir可为null，若为null，相当于File(subDir)，注意，这里该为null就为null，不要传空字符串，空字符串和null作为basedir时，行为不同
     return file.exists()
 }
 
@@ -99,7 +129,7 @@ fun checkFileOrFolderNameAndTryCreateFile(nameWillCheck:String, appContext: Cont
         }
 
         //获取缓存目录
-        val cacheDir = AppModel.singleInstanceHolder.externalCacheDir
+        val cacheDir = AppModel.getOrCreateExternalCacheDir()
 //        val fileNameNeedTest = Cons.createDirTestNamePrefix + str +"_"+ getRandomUUID()  //e.g. prefix_yourreponame_uuid，uuid是为了避免文件夹存在
 
         //拼接文件名
@@ -132,31 +162,63 @@ fun checkFileOrFolderNameAndTryCreateFile(nameWillCheck:String, appContext: Cont
 }
 
 
+
+// start: deprecated uuid functions
+//
+////返回值示例(32个字符+4个分隔符=36个字符)：171885d6-93b5-497a-8b9b-17e58ac99138
+//private fun getRandomUUIDWithSeparator():String {
+//    return UUID.randomUUID().toString();
+//}
+
+////返回值示例(32个字符)：171885d693b5497a8b9b17e58ac99138
+//private fun getRandomUUIDNoSeparator():String {
+//    return UUID.randomUUID().toString().replace("-","");
+//}
+
 //返回值示例：includeSeparator=true,36位字符:171885d6-93b5-497a-8b9b-17e58ac99138
 //          includeSeparator=false，32位字符:171885d693b5497a8b9b17e58ac99138
-fun getRandomUUID(includeSeparator:Boolean=false):String {
-    return if(includeSeparator) getRandomUUIDWithSeparator()
-            else  getRandomUUIDNoSeparator()
+//fun getRandomUUID(includeSeparator:Boolean=false):String {
+//    return if(includeSeparator) getRandomUUIDWithSeparator()
+//            else  getRandomUUIDNoSeparator()
+//}
+
+//fun getShortUUID(len:Int=20):String {
+//    var actuallyLen = len
+//    if(len>32) {
+//        actuallyLen=32
+//    }
+//    return getRandomUUID().substring(0, actuallyLen)
+//}
+// end: deprecated uuid functions
+
+
+
+
+fun getRandomUUID(len: Int = 32):String {
+    return generateRandomString(len)
 }
 
-//返回值示例(32个字符+4个分隔符=36个字符)：171885d6-93b5-497a-8b9b-17e58ac99138
-private fun getRandomUUIDWithSeparator():String {
-    return UUID.randomUUID().toString();
-}
-//返回值示例(32个字符)：171885d693b5497a8b9b17e58ac99138
-private fun getRandomUUIDNoSeparator():String {
-    return UUID.randomUUID().toString().replace("-","");
-}
-
-//返回值示例: 171885d617e58ac99138
-//注：这个len实际不能超过32，不然要改代码，改成拼接UUID直到满足长度，太麻烦了也没必要
 fun getShortUUID(len:Int=20):String {
-    var actuallyLen = len
-    if(len>32) {
-        actuallyLen=32
-    }
-    return getRandomUUID(includeSeparator = false).substring(0, actuallyLen)
+    return getRandomUUID(len)
 }
+
+
+// start: 生成随机字符串，字符集：a..z, 0..9, A..Z
+//val randomStringCharList = listOf('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z');
+val randomStringCharList = listOf('a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9');
+
+/**
+ * 生成随机字符串比生成真UUID性能更好，好近10倍
+ */
+fun generateRandomString(length: Int=16): String {
+    val sb = StringBuilder(length)
+    for (i in 1..length) {
+        sb.append(randomStringCharList.random())
+    }
+    return sb.toString()
+}
+// end: 生成随机字符串
+
 
 fun dbIntToBool(v:Int):Boolean {
     return v != Cons.dbCommonFalse
@@ -166,29 +228,84 @@ fun boolToDbInt(b:Boolean):Int {
     return if(b) Cons.dbCommonTrue else Cons.dbCommonFalse
 }
 
-//测试了下，这个time参数默认值会在每次调用时函数时重新调用LocalDateTime.now()，和预期一样，无bug
-fun getSecFromTime(time:LocalDateTime=LocalDateTime.now(), offset:ZoneOffset=Cons.dbUsedTimeZoneOffset):Long {
-//    return Instant.now().epochSecond
-//    return ZonedDateTime.now().toEpochSecond()
-//    LocalDateTime没有时区，单纯存的时间，存储和读取使用相同的time offset就行
-    //20240408：这里统一用的UTC时区，不太确定能不能在所有设备上正确显示时间，
-    // 如果不能，在settings表加个时区字段(settings表不用迁移db，而且如果想显示在设置页面让用户能设置，这个表也正合适)，
-    // 默认获取用户设备的默认时区（最好用户也可手动设置），然后把getTimeFromSec()函数改下，
-    // 改成获取时间时加上时区对应的偏移量，比如 UTC+8，就加上8个小时的偏移量(可能需要把小时转换成分钟或秒)
-    return time.toEpochSecond(offset)
+
+/**
+ * @param originDateTimeFormatted "yyyy-MM-dd HH:mm:ss" formatted date time expected
+ *
+ * @return same date return "HH:mm:ss"; same year return "MM-dd HH:mm:ss"; else return fully origin date time
+ */
+fun getShortTimeIfPossible(originDateTimeFormatted:String) : String {
+    return try {
+        val nowFormatted = getNowInSecFormatted()
+        val nowDateTime = nowFormatted.split(' ')
+        val nowYmd = nowDateTime[0]
+
+        val originDateTime = originDateTimeFormatted.split(' ')
+        val originYmd = originDateTime[0]
+        val originHms = originDateTime[1]
+
+        if(nowYmd == originYmd) { // same date
+            // HH:mm:ss
+            originHms
+        }else {
+            val nowYmdArr = nowYmd.split('-')
+            val originYmdArr = originYmd.split('-')
+            if(nowYmdArr[0] == originYmdArr[0]) {  // same year
+                // MM-dd HH:mm:ss
+                "${originYmdArr[1]}-${originYmdArr[2]} $originHms"
+            }else { // year and date totally difference, return fully origin date time
+                // yyyy-MM-dd HH:mm:ss
+                originDateTimeFormatted
+            }
+        }
+    }catch (e: Exception) {
+        MyLog.e(TAG, "#getShortTimeIfPossible(String) err: originDateTimeFormatted=$originDateTimeFormatted, err=${e.localizedMessage}")
+        ""
+    }
 }
 
-fun getTimeFromSec(sec:Long, offset:ZoneOffset=Cons.dbUsedTimeZoneOffset):LocalDateTime {
-
-//    return ZonedDateTime.ofInstant(Instant.ofEpochSecond(sec),ZoneId.systemDefault())
-//    return LocalDateTime.ofInstant(Instant.ofEpochSecond(sec),ZoneId.systemDefault())
-    return LocalDateTime.ofEpochSecond(sec, 0, offset)
+/**
+ * @param sec utc+0 seconds expected, this param should not add offset, will be add when formatting
+ */
+fun getShortTimeIfPossible(sec: Long) : String {
+    return getShortTimeIfPossible(getFormatTimeFromSec(sec))
 }
 
-fun getFormatTimeFromSec(sec:Long, formatter:DateTimeFormatter = Cons.defaultDateTimeFormatter, offset: ZoneOffset=Cons.dbUsedTimeZoneOffset):String {
-    val timeFromSec = getTimeFromSec(sec, offset)
-//    val zonedDateTime = ZonedDateTime.from(localDateTimeFromSec)
-    return formatter.format(timeFromSec)
+/**
+ * @return secs from utc
+ */
+fun getSecFromTime():Long {
+    return getUtcTimeInSec()
+}
+
+/**
+ * @param sec the sec should is unix epoch UTC+0 seconds
+ */
+fun getTimeFromSec(sec:Long):ZonedDateTime {
+
+    //这个输出必须不带时区信息，否则报错，不好
+//    return LocalDateTime.ofInstant(Instant.ofEpochSecond(sec), AppModel.getAppTimeZoneOffset())
+
+    //这个输出可带时区信息也可不带，好
+    return ZonedDateTime.ofInstant(Instant.ofEpochSecond(sec), AppModel.getAppTimeZoneOffsetCached())
+
+//    return LocalDateTime.ofEpochSecond(sec, 0, AppModel.getAppTimeZoneOffset())
+}
+
+
+/**
+ * @param sec the sec should is unix epoch UTC+0 seconds
+ */
+fun getFormatTimeFromSec(sec:Long, formatter:DateTimeFormatter = Cons.defaultDateTimeFormatter):String {
+    try {
+        val timeFromSec = getTimeFromSec(sec)
+        //    val zonedDateTime = ZonedDateTime.from(localDateTimeFromSec)
+        return formatter.format(timeFromSec)
+
+    }catch (e:Exception) {
+        MyLog.e(TAG, "#getFormatTimeFromSec: format datetime failed: ${e.stackTraceToString()}")
+        return ""
+    }
 }
 
 fun getNowInSecFormatted(formatter:DateTimeFormatter = Cons.defaultDateTimeFormatter):String {
@@ -196,8 +313,64 @@ fun getNowInSecFormatted(formatter:DateTimeFormatter = Cons.defaultDateTimeForma
 }
 
 fun getSystemDefaultTimeZoneOffset() :ZoneOffset{
-//    return ZoneOffset.of(ZoneOffset.systemDefault().id)
-    return OffsetDateTime.now().offset
+    // tested
+    return ZoneOffset.systemDefault().rules.getOffset(Instant.now())
+
+    // tested
+    // return OffsetDateTime.now().offset
+}
+
+/**
+ * format minutes to UTC format (format: "UTC", + or -, hours, :minutes)
+ *
+ * e.g. input 480, return "UTC+8"; input 330, return "UTC+5:30"; input 303, return "UTC+5:03"
+ */
+fun formatMinutesToUtc(minutes:Int):String {
+    try {
+        // try get utc string from cache by minutes
+        val cachedValue = AppModel.timezoneCacheMap.get(minutes)
+        if(cachedValue != null) {
+            return cachedValue
+        }
+
+        // no cache, calculate
+        val hours = minutes / 60
+        val resetOfMinutes = (minutes % 60).absoluteValue  // [0, 59]
+
+        val hoursStr = if(hours >= 0) {
+            //正数没符号，加个加号
+            "+$hours"
+        }else {
+            //负数，自带符号，无需处理
+            "$hours"
+        }
+
+        val resetOfMinutesStr = if(resetOfMinutes > 0) {
+            val tmp = if(resetOfMinutes > 9) {
+                //两位数，直接返回
+                "$resetOfMinutes"
+            }else {
+                //一位数，补0
+                "0$resetOfMinutes"
+            }
+
+            ":$tmp"
+        }else {
+            //取了绝对值，所以不可能小于0，如果等于0，无需显示，返回空字符串即可
+            ""
+        }
+
+        val result = "UTC$hoursStr$resetOfMinutesStr"
+
+        // update cache
+        AppModel.timezoneCacheMap.put(minutes, result)
+
+        return result
+    }catch (e:Exception) {
+        MyLog.e(TAG, "#formatMinutesToUtc() err: ${e.stackTraceToString()}")
+
+        return ""
+    }
 }
 
 //转换天数到秒数
@@ -218,18 +391,72 @@ private fun getDirIfNullThenShowToastAndThrowException(context:Context, dir:File
     }
 }
 
-fun getExternalFilesDirOrThrowException(context:Context):File {
-    val dir = context.getExternalFilesDir(null)
-    return getDirIfNullThenShowToastAndThrowException(context, dir, Cons.errorCantGetExternalDir)
+/**
+ * if get external files err, will return inner files dir, if still got err, app cant work, throw exception, done
+ */
+fun getExternalFilesIfErrGetInnerIfStillErrThrowException(context:Context):File {
+    return try {
+        getDirIfNullThenShowToastAndThrowException(context, context.getExternalFilesDir(null), Cons.errorCantGetExternalFilesDir)
+    }catch (e:Exception) {
+        getDirIfNullThenShowToastAndThrowException(context, context.filesDir, Cons.errorCantGetInnerFilesDir)
+    }
 }
 
-fun getExternalCacheDirOrThrowException(context:Context):File {
-    val dir = context.externalCacheDir
-    return getDirIfNullThenShowToastAndThrowException(context, dir, Cons.errorCantGetExternalCacheDir)
+/**
+ * if get external cache err, will return inner cache dir, if still got err, app cant work, throw exception, done
+ */
+fun getExternalCacheDirIfErrGetInnerIfStillErrThrowException(context:Context):File {
+    return try{
+        getDirIfNullThenShowToastAndThrowException(context, context.externalCacheDir, Cons.errorCantGetExternalCacheDir)
+    }catch (e:Exception) {
+        getDirIfNullThenShowToastAndThrowException(context, context.cacheDir, Cons.errorCantGetInnerCacheDir)
+    }
 }
+
 fun getInnerDataDirOrThrowException(context:Context):File {
-    val dir = context.dataDir
-    return getDirIfNullThenShowToastAndThrowException(context, dir, Cons.errorCantGetInnerDataDir)
+    return getDirIfNullThenShowToastAndThrowException(context, context.dataDir, Cons.errorCantGetInnerDataDir)
+}
+
+fun getInnerDataFilesDirOrThrowException(context:Context):File {
+    val dataDir = getInnerDataDirOrThrowException(context)
+    val filesDir = File(dataDir.canonicalPath+"/files")
+    if(!filesDir.exists()) {
+        filesDir.mkdirs()
+    }
+
+    return filesDir
+}
+
+fun getExternalDataDirOrNull(context:Context):File? {
+    return try {
+        val dir = context.getExternalFilesDir(null) ?: throw RuntimeException("`context.getExternalFilesDir(null)` returned `null`")
+        if(!dir.exists()) {
+            dir.mkdirs()
+        }
+
+        //先转成规范路径File再获取parentFile，不然如果是 File("parent", "sub/abc")，这种路径获取到的就会是parent，而不是真正的当前目录abc的上级目录"parent/sub"
+        dir.canonicalFile.parentFile
+    }catch (e:Exception) {
+        MyLog.e(TAG, "get app external data failed, usually this folder at '/storage/emulated/Android/data/app_package_name, err is: ${e.stackTraceToString()}")
+
+        null
+    }
+}
+
+// inner cache dir, usually at: "/data/data/app_package_name/cache"
+fun getInnerCacheDirOrNull(context:Context):File? {
+    return try {
+        val dir = context.cacheDir ?: throw RuntimeException("`context.cacheDir` returned `null`")
+        if(!dir.exists()) {
+            dir.mkdirs()
+        }
+
+        dir
+    }catch (e:Exception) {
+        MyLog.e(TAG, "get app inner cache dir failed, err is: ${e.stackTraceToString()}")
+
+        null
+    }
 }
 
 //fun createAllRepoParentDirIfNonexists(baseDir:File, allRepoParentDir:String=Cons.defaultAllRepoParentDirName):File {
@@ -260,29 +487,68 @@ fun deleteIfFileOrDirExist(f: File):Boolean {
     return true;
 }
 
-fun isFileSizeOverLimit(size:Long) :Boolean {
-    return size > Cons.editorFileSizeMaxLimit
+fun isFileSizeOverLimit(size:Long, limit:Long=SettingsUtil.getSettingsSnapshot().editor.maxFileSizeLimit) :Boolean {
+    return isSizeOverLimit(size = size, limitMax = limit)
 }
 
-fun isDiffContentSizeOverLimit(size:Long) :Boolean {
-    return size > Cons.diffContentSizeMaxLimit
+fun isDiffContentSizeOverLimit(size:Long, limit:Long=SettingsUtil.getSettingsSnapshot().diff.diffContentSizeMaxLimit) :Boolean {
+    return isSizeOverLimit(size = size, limitMax = limit)
 }
 
-//例如：输入 abc 或 /path/to/abc 或 /path/to/abc/，返回 abc
-//例如：输入 abc// 或 其他无法解析出文件夹或目录名的字符串，则返回原字符串
-fun getFileNameFromCanonicalPath(path:String):String {
-    val pathRemovedSuffix = path.removeSuffix(File.separator)  //为目录移除末尾的/，如果有的话
-
-    val lastSeparatorIndex = pathRemovedSuffix.lastIndexOf(File.separator)  //找出最后一个/的位置
-
-    //无法取出文件名则返回原字符串
-    //没找到/ 或 无效路径格式(上面去了个/，末尾还有个/，说明原字符串末尾至少两个/，所以是无效路径)
-    if(lastSeparatorIndex == -1 || lastSeparatorIndex == pathRemovedSuffix.length-1) {
-        return path
+/**
+ * @return if limitMax is 0, meant no limit, return false; else return (size > limitMax) 's result
+ */
+fun isSizeOverLimit(size:Long, limitMax:Long):Boolean {
+    // 0 = no limit
+    if(limitMax == 0L) {
+        return false
     }
 
-    //有效路径，返回目录或文件名
-    return pathRemovedSuffix.substring(lastSeparatorIndex+1, pathRemovedSuffix.length)
+    return size > limitMax
+}
+
+/**
+ * return file name or empty string
+ * 适用于 "/"开头的绝对路径和非"/"开头的相对路径
+ */
+fun getFileNameFromCanonicalPath(path:String) : String {
+    return runCatching { FsUtils.splitParentAndName(path).second }.getOrDefault("")
+}
+
+
+/**
+ * @return e.g.: input "abc" or "/path/to/abc" or "/path/to/abc/" or "path/to/abc"，return "abc";
+ *          input "abc//" or other bad path, return origin path;
+ *          if err, return origin path
+ */
+@Deprecated("over complex")
+fun deprecated_getFileNameFromCanonicalPath(path:String, separator:Char=Cons.slashChar) : String {
+    try {
+        val pathRemovedSuffix = path.trim(separator)  //为目录移除末尾的/，如果有的话
+
+        val lastSeparatorIndex = pathRemovedSuffix.lastIndexOf(separator)  //找出最后一个/的位置
+
+        if(lastSeparatorIndex == -1) {
+            return pathRemovedSuffix
+        }
+
+        //因为先trim过separator，所以再lastIndexOf separator，结果不可能是开头或结尾，
+        // 所以这里不用判断index是否在末尾，
+        // trim一个字符在lastIndexOf或indexOf那个字符，结果只有两种：要么就找到了，在中间，要么就没找到，-1，而上面已经判断了-1，
+        // 所以后面再调用substring(lastIndexOf+1)是绝对安全不会越界的
+
+        //无法取出文件名则返回原字符串
+        //没找到/ 或 无效路径格式(上面去了个/，末尾还有个/，说明原字符串末尾至少两个/，所以是无效路径)
+//        if(lastSeparatorIndex == pathRemovedSuffix.length-1) {  // separator在末尾
+//            return path
+//        }
+
+        //有效路径，返回目录或文件名
+        return pathRemovedSuffix.substring(lastSeparatorIndex+1)
+    }catch (e:Exception) {
+        MyLog.e(TAG, "#getFileNameFromCanonicalPath err: path=$path, separator=$separator, err=${e.localizedMessage}")
+        return path
+    }
 }
 
 //输入 eg: /sdcard/Android/data/com.pack/files/allRepoDir/Repo/dir/etc
@@ -290,7 +556,7 @@ fun getFileNameFromCanonicalPath(path:String):String {
 fun getFilePathStrBasedAllRepoDir(path:String):String {
     var ret = ""
 
-    val allRepoBaseDirParentFullPath = AppModel.singleInstanceHolder.allRepoParentDir.parent?:""  //不知道parent是否以/结尾，如果是，后面解析出的内容会是 非/开头，直接返回即可，否则会是/开头，需要删除开头的/再返回
+    val allRepoBaseDirParentFullPath = AppModel.allRepoParentDir.parent?:""  //不知道parent是否以/结尾，如果是，后面解析出的内容会是 非/开头，直接返回即可，否则会是/开头，需要删除开头的/再返回
     val allRepoBaseIndexOf = path.indexOf(allRepoBaseDirParentFullPath)
     if(allRepoBaseIndexOf!=-1) {
         val underAllRepoBaseDirPathStartAt = allRepoBaseIndexOf + allRepoBaseDirParentFullPath.length
@@ -330,7 +596,7 @@ fun getFilePathStrUnderRepoByFullPath(fullPath:String):Pair<String,String> {
             val finallyStrIndex = repoPathUnderAllRepoBase.indexOf(File.separator)+1  //计算 dir/etc 在 Repo/dir/etc 中的起始索引
             if(finallyStrIndex!=0 && finallyStrIndex < repoPathUnderAllRepoBase.length) {
                 val repoNameEndsWithSeparator = repoPathUnderAllRepoBase.substring(0, finallyStrIndex)  //取出 Repo/
-                repoFullPath = File(AppModel.singleInstanceHolder.allRepoParentDir.canonicalPath, repoNameEndsWithSeparator).canonicalPath  //canonicalPath 返回的结果末尾就没 / 了，结果应为 Repo
+                repoFullPath = File(AppModel.allRepoParentDir.canonicalPath, repoNameEndsWithSeparator).canonicalPath  //canonicalPath 返回的结果末尾就没 / 了，结果应为 Repo
                 relativePathUnderRepo = repoPathUnderAllRepoBase.substring(finallyStrIndex).removePrefix(File.separator).removeSuffix(File.separator)  //返回 dir/etc
             }
         }
@@ -394,21 +660,31 @@ fun getFilePathStrBasedRepoDir(path:String, returnResultStartsWithSeparator:Bool
 
 //input就是git status输出的那种仓库内相对路径+文件名，例如 dir1/dir2/file.txt ，输出则返回 dir1/dir2/；如果输入是file.txt，则返回 /
 //第2个参数传true适用于解析仓库相对路径的场景，因为仓库相对路径下仓库根目录下的文件没有/但其归属于/，这里的/代表仓库根目录；为false则会在查找不到路径分隔符时返回原path（入参1），这种情况暂无应用场景
-fun getParentPathEndsWithSeparator(path:String, trueWhenNoSeparatorReturnSeparatorFalseReturnPath:Boolean=true):String {
+/**
+ * @param path src path, will try get parent path for it
+ * @param trueWhenNoParentReturnSeparatorFalseReturnPath true, when parent path is empty will return separator like "/" ; else return `path`. will ignore this param if `trueWhenNoParentReturnEmpty` is true
+ * @param trueWhenNoParentReturnEmpty when parent path is empty return empty, if false, return what depend by `trueWhenNoParentReturnSeparatorFalseReturnPath`
+ */
+fun getParentPathEndsWithSeparator(path:String, trueWhenNoParentReturnSeparatorFalseReturnPath:Boolean=true, trueWhenNoParentReturnEmpty:Boolean=false):String {
     try {
         val separator = File.separator
+        val path = path.removeSuffix(separator)  // this is necessary, e.g. "def/abc/" same means with "def/abc", the parent should is "def/" for both
         val lastIndexOfSeparator = path.lastIndexOf(separator)
-        if(lastIndexOfSeparator != -1) {  // found /
+        if(lastIndexOfSeparator != -1) {  // found "/", has a parent path
             return path.substring(0, lastIndexOfSeparator+1)  // +1把/本身包含上
-        }else {  // not found /
+        }else {  // not found "/", no parent path yet
             //没/，可能是根目录？话说我当初为什么没找到让它返回/？
             // 啊，对了，因为是根据仓库根目录设置的，如果有个文件在仓库根目录，
             // 其仓库相对路径就是 filename，这时如果找不到/，说明是根目录
-            return if(trueWhenNoSeparatorReturnSeparatorFalseReturnPath) separator else path
+            if(trueWhenNoParentReturnEmpty) {
+                return ""
+            }
+
+            return if(trueWhenNoParentReturnSeparatorFalseReturnPath) separator else path
         }
 
     }catch (e:Exception) {
-        MyLog.e(TAG, "#getParentPathEndsWithSeparator err: path=$path, trueWhenNoSeparatorReturnSeparatorFalseReturnPath=$trueWhenNoSeparatorReturnSeparatorFalseReturnPath, err=${e.localizedMessage}")
+        MyLog.e(TAG, "#getParentPathEndsWithSeparator err: path=$path, trueWhenNoParentReturnSeparatorFalseReturnPath=$trueWhenNoParentReturnSeparatorFalseReturnPath, trueWhenNoParentReturnEmpty=$trueWhenNoParentReturnEmpty, err=${e.localizedMessage}")
         //发生异常一律return path合适吗？，没什么不合适的，虽然可能会有些奇怪，但在界面能看出问题 且 用户也感觉没太大异常，嗯，就这样吧
         //发生异常return 原path
         return path
@@ -427,16 +703,25 @@ fun isRepoReadyAndPathExist(r: RepoEntity?): Boolean {
         return false
     }
 
-    if (r.workStatus != Cons.dbRepoWorkStatusNotReadyNeedClone
-        && r.workStatus != Cons.dbRepoWorkStatusNotReadyNeedInit
+    //首先把仓库的gitRepoState更新一下，不然万一没更新状态，gitRepoState会是null，会导致后面误判仓库无效
+    runCatching {
+        Repository.open(r.fullSavePath)?.use { repo->
+            r.gitRepoState = repo.state()
+        }
+    }
+
+    if (Libgit2Helper.isRepoStatusReady(r)
         && r.isActive == Cons.dbCommonTrue
-        && (r.fullSavePath ?: "").isNotBlank()
+        && r.fullSavePath.isNotBlank()
+
+        //过滤地址有效但仓库无效的仓库
+        && r.gitRepoState != null
     ) {
-        val f = File(r.fullSavePath)
-        if (f.exists()) {
+        if (File(r.fullSavePath).exists()) {
             return true;
         }
     }
+
     return false
 }
 
@@ -450,42 +735,53 @@ fun setErrMsgForTriggerNotify(hasErrState:MutableState<Boolean>,errMsgState:Muta
 fun doJobThenOffLoading(
     loadingOn: (String)->Unit={},
     loadingOff: ()->Unit={},
-    loadingText: String="Loading...",  //这个最好别使用appContext.getString(R.string.loading)，万一appContext都还没初始化就调用此方法，会报错，不过目前20240426为止，只有在appContext赋值给AppModel对应字段后才会调用此方法，所以实际上没我担心的这个问题，根本不会发生
+    loadingText: String="Loading…",  //这个最好别使用appContext.getString(R.string.loading)，万一appContext都还没初始化就调用此方法，会报错，不过目前20240426为止，只有在appContext赋值给AppModel对应字段后才会调用此方法，所以实际上没我担心的这个问题，根本不会发生
     coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO,
     job: suspend ()->Unit
-) {
-    try {
+): Job? {
+    return try {
         CoroutineScope(coroutineDispatcher).launch {
             //开启loading
             try {
                 loadingOn(loadingText)
             }catch (e:Exception) {
-                Msg.requireShowLongDuration("loading on err:"+e.localizedMessage)
+                Msg.requireShowLongDuration("loadOn err: "+e.localizedMessage)
                 MyLog.e(TAG, "#doJobThenOffLoading(): #loadingOn error!\n" + e.stackTraceToString())
             }finally {
                 //执行操作
                 try {
                     job()
                 }catch (e:Exception) {
-                    Msg.requireShowLongDuration("do job err:"+e.localizedMessage)
+                    Msg.requireShowLongDuration("job err: "+e.localizedMessage)
                     MyLog.e(TAG, "#doJobThenOffLoading(): #job error!\n" + e.stackTraceToString())
                 }finally {
                     try {
                         //最后解除loading
                         loadingOff()  //x 20240426job被trycatch包裹，实际上这个已经是百分百会解除了，索性放到finally里，百分百解除的意义更明确)这个要不要放到finally里？要不然一出异常，loading就无法解除了，不过解除不了也好，省得用户误操作
                     }catch (e:Exception) {
-                        Msg.requireShowLongDuration("loading off err:"+e.localizedMessage)
+                        Msg.requireShowLongDuration("loadOff err: "+e.localizedMessage)
                         MyLog.e(TAG, "#doJobThenOffLoading(): #loadingOff error!\n" + e.stackTraceToString())
                     }
                 }
             }
         }
     }catch (e:Exception) {
-        Msg.requireShowLongDuration("coroutine err:"+e.localizedMessage)
+        Msg.requireShowLongDuration("coroutine err: "+e.localizedMessage)
         MyLog.e(TAG, "#doJobThenOffLoading(): #launch error!\n" + e.stackTraceToString())
+        null
     }
 
 }
+
+fun doJob(
+    coroutineDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    job: suspend () -> Unit
+) :Job {
+    return CoroutineScope(coroutineDispatcher).launch {
+        job()
+    }
+}
+
 //fun doJobThenOffLoadingWith1Param(loadingOn:()->Unit={},loadingOff: ()->Unit={},job:suspend (Any)->Any, param:Any) {
 //    CoroutineScope(Dispatchers.IO).launch {
 //        try {
@@ -510,52 +806,55 @@ private fun replaceStringRes(strRes:String, placeHolderCount:Int, strWillReplace
 }
 //替换string resource 中的placeholder为目标字符
 fun replaceStringResList(strRes:String, strWillReplacedList:List<String>):String {
-    var ret=""
+    var ret=strRes
     for((idx, str) in strWillReplacedList.withIndex()) {
         val idxPlus1 = idx+1
-        //第一次循环时，使用初始的字符串
-        if(idxPlus1 == 1){
-            ret = replaceStringRes(strRes,idxPlus1,str)
-        }else { //后续循环使用已赋值的字符串
-            ret = replaceStringRes(ret,idxPlus1,str)
-        }
+
+        ret = replaceStringRes(ret, idxPlus1, str)
     }
 
     return ret;
 }
 
 fun getStrShorterThanLimitLength(src:String, limit:Int=12):String {
-    return if(src.length<limit) src else src.substring(0, limit)+"..."
+    return if(src.length > limit) src.substring(0, limit)+"…" else src
 }
 
 suspend fun createAndInsertError(repoId:String, errMsg: String) {
-    if(repoId.isBlank() || errMsg.isEmpty()) {
+    if(repoId.isBlank() || errMsg.isBlank()) {
         return
     }
 
-    val errDb = AppModel.singleInstanceHolder.dbContainer.errorRepository
+    // if repo doesn't exist, return
+    val repoDb = AppModel.dbContainer.repoRepository
+    if(repoDb.getById(repoId) == null) {
+        MyLog.e(TAG, "$TAG#createAndInsertError: not found repo which matched the repoId '$repoId', and the errMsg is: $errMsg")
+        return
+    }
+
+    //更新repo表相关字段
+    repoDb.setNewErrMsg(repoId, errMsg)
+
+    val errDb = AppModel.dbContainer.errorRepository
     errDb.insert(
         ErrorEntity(
-            msg=errMsg,
+            msg = errMsg,
             repoId = repoId,
             date = getNowInSecFormatted()
         )
     )
-
-    //更新repo表相关字段
-    val repoDb = AppModel.singleInstanceHolder.dbContainer.repoRepository
-    repoDb.setNewErrMsg(repoId, errMsg)
 }
 
 //做3件事：1记录错误信息到日志文件 2显示错误信息 3保存错误信息到数据库
 suspend fun showErrAndSaveLog(logTag:String, logMsg:String, showMsg:String, showMsgMethod:(String)->Unit, repoId:String, errMsgForErrDb:String = showMsg) {
-    //记录到日志
-    MyLog.e(logTag,logMsg)
     //显示提示
     showMsgMethod(showMsg)
+
     //保存数据库(给用户看的，消息尽量简单些)
     createAndInsertError(repoId, errMsgForErrDb)
 
+    //记录到日志
+    MyLog.e(logTag, logMsg)
 }
 
 fun getHumanReadableSizeStr(size:Long):String {
@@ -625,8 +924,8 @@ fun<T> doActIfIndexGood(idx:Int, list:List<T>, act:(T)-> Unit):Ret<T?> {
         }
         return Ret.createError(null, "err:invalid index for list", Ret.ErrCode.invalidIdxForList)
     }catch (e:Exception) {
-        MyLog.e(TAG, "#doActIfIndexGood() err:"+e.stackTraceToString())
-        return Ret.createError(null, "err:"+e.localizedMessage, Ret.ErrCode.doActForItemErr)
+        MyLog.e(TAG, "#doActIfIndexGood() err: "+e.stackTraceToString())
+        return Ret.createError(null, "err: "+e.localizedMessage, Ret.ErrCode.doActForItemErr)
     }
 
 }
@@ -642,9 +941,539 @@ fun getSafeIndexOfListOrNegativeOne(indexWillCheck:Int, listSize:Int):Int {
     return indexWillCheck.coerceAtLeast(0).coerceAtMost(listSize - 1)
 }
 
-fun <T> isGoodIndexForList(index:Int, list:List<T>):Boolean {
-    return index >= 0 && index < list.size
+fun <T> isGoodIndexForList(index:Int, list:List<T>) = isGoodIndex(index, list.size);
+
+fun isGoodIndexForStr(index:Int, str:String) = isGoodIndex(index, str.length);
+
+fun isGoodIndex(index:Int, size:Int) = index >= 0 && index < size;
+
+// generated by chatgpt
+fun getHostFromSshUrl(sshUrl: String): String? {
+    // 定义正则表达式来匹配 SSH URL
+    val regex = Regex("^(?:([^@]+)@)?([^:]+)(?::.*)?$")
+    val matchResult = regex.matchEntire(sshUrl)
+
+    return matchResult?.groups?.get(2)?.value // 获取主机名
 }
-fun isGoodIndexForStr(index:Int, str:String):Boolean {
-    return index >= 0 && index < str.length
+
+fun getDomainByUrl(url:String):String {
+    try {
+        if(Libgit2Helper.isHttpUrl(url)) { // http or https, only return host, no port
+            return URI.create(url).host ?: ""
+        }else { // ssh url
+            return getHostFromSshUrl(url) ?: ""
+        }
+    }catch (e:Exception) {
+        MyLog.e(TAG, "#getDomainByUrl err: url=$url, err=${e.localizedMessage}")
+        return ""
+    }
+}
+
+fun getFormattedLastModifiedTimeOfFile(file:File):String{
+    return getFormatTimeFromSec(sec = file.lastModified() / 1000)
+}
+
+fun getFormattedLastModifiedTimeOfFile(file:FuckSafFile):String{
+    return getFormatTimeFromSec(sec = file.lastModified() / 1000)
+}
+
+
+fun<T> getFirstOrNullThenRemove(list:MutableList<T>):T? {
+    try {
+        return list.removeAt(0)
+    }catch (e:Exception) {
+        return null
+    }
+}
+
+/**
+ * return pair: onlyForThisFolder and viewAndSort
+ */
+fun getViewAndSortForPath(path:String, settings:AppSettings) :Pair<Boolean, DirViewAndSort> {
+    val folderViewSort = settings.files.dirAndViewSort_Map[path]
+
+    return if(folderViewSort == null) {
+        Pair(false,  settings.files.defaultViewAndSort)
+    }else {
+        Pair(true, folderViewSort)
+    }
+}
+
+/**
+ * 获取文件扩展名或空字符串。
+ * 注：若'.'在文件名开头或末尾或没有'.'，将返回空字符串；否则返回 ".txt" 之类的后缀名
+ * @return input "abc.txt", return ".txt"; input ".git", return ""; input "abc.", return ""
+ */
+fun getFileExtOrEmpty_treatStartWithDotAsNoExt(filename:String):String {
+    val extIndex = filename.lastIndexOf('.')
+
+    // <=0 is right, cause if extIndex==0, the . is first char, meaning it is a hidden file, not represent a ext name
+    // 小于等于0是对的，因为如果extIndex等于0， . 是第一个字符，代表隐藏文件而不是扩展名
+    return if(extIndex <= 0 || extIndex == filename.lastIndex){
+        ""
+    }else{
+//        filename.substring(extIndex, filename.length)  //没必要指定第2个参数
+        filename.substring(extIndex)
+    }
+}
+
+
+/**
+ * @return Pair(name, ext), doesn't contains '.',
+ *   e.g. input "abc.txt", return Pair("abc,", "txt");
+ *   input ".git", return Pair("", "git");
+ *   input "abc.", return Pair(abc, "")
+ */
+fun splitFileNameAndExt(filename:String) : Pair<String, String> {
+    val extIndex = filename.lastIndexOf('.')
+
+    return if(extIndex < 0) {
+        Pair(filename, "")
+    }else if(extIndex == 0) {
+        // will not out of bounds,
+        //   even filename.length is 1,
+        //   the substring(length) will return an empty string ""
+        Pair("", filename.substring(1))
+    }else {  // extIndex > 0
+        Pair(filename.substring(0, extIndex), filename.substring(extIndex + 1))
+    }
+}
+
+
+fun getFileNameOrEmpty(filename:String) = splitFileNameAndExt(filename).first
+
+fun getFileExtOrEmpty(filename:String) = splitFileNameAndExt(filename).second
+
+
+
+fun readTimeZoneOffsetInMinutesFromSettingsOrDefault(settings: AppSettings, defaultTimeOffsetInMinutes:Int):Int {
+    return readTimeZoneOffsetInMinutesFromSettingsOrDefaultNullable(settings, defaultTimeOffsetInMinutes)!!
+}
+
+fun readTimeZoneOffsetInMinutesFromSettingsOrDefaultNullable(settings: AppSettings, defaultTimeOffsetInMinutes:Int?):Int? {
+    return try{
+        if(settings.timeZone.followSystem) {
+            AppModel.getSystemTimeZoneOffsetInMinutesCached()
+        }else {
+            val offsetMinutes = settings.timeZone.offsetInMinutes.trim().toInt()
+            if(isValidOffsetInMinutes(offsetMinutes)){
+                offsetMinutes
+            }else {
+                val errMsg = getInvalidTimeZoneOffsetErrMsg(offsetMinutes)
+                MyLog.e(TAG, "#readTimeZoneOffsetInMinutesFromSettingsOrDefaultNullable err: $errMsg")
+                throw RuntimeException(errMsg)
+            }
+        }
+    }catch (_:Exception) {
+        defaultTimeOffsetInMinutes
+    }
+}
+
+fun getInvalidTimeZoneOffsetErrMsg(offsetInMinutes:Int):String {
+    return "invalid timezone offset: $offsetInMinutes minutes, expect in ${getValidTimeZoneOffsetRangeInMinutes()}"
+}
+
+fun getValidTimeZoneOffsetRangeInMinutes():String {
+    return "[-1080, 1080] minutes"
+}
+
+/**
+ * 有效的时区应该在 -18小时到+18小时之间，换算成分钟是1080，秒是64800
+ */
+fun isValidOffsetInMinutes(offsetInMinutes:Int):Boolean {
+    return offsetInMinutes >= -1080 && offsetInMinutes <= 1080
+}
+
+fun getUtcTimeInSec():Long {
+    //tested
+//    return ZonedDateTime.now(ZoneOffset.UTC).toEpochSecond()
+
+    //tested
+    return Instant.now().epochSecond
+}
+
+
+/**
+ * @return pageChanged, if true, means page changed, selectedItemList not updated; else, page not changed and selectedItemList updated
+ */
+fun <T> updateSelectedList(
+    selectedItemList: MutableList<T>,
+    itemList: List<T>,
+    match:(oldSelected:T, item:T)->Boolean,  // used for found
+    quitSelectionMode: () -> Unit,
+    pageChanged: () -> Boolean = {false}, //页面改变了，例如ChangeList页面换了仓库，这次的查询就不需要继续了，如果不需要此函数，可不传，用默认值即可
+): Boolean {
+    if (selectedItemList.isEmpty() || itemList.isEmpty()) {
+        quitSelectionMode()
+    } else {
+        //移除选中但已经不在列表中的元素
+        val stillSelectedList = mutableListOf<T>()
+
+//                一般选中条目的列表元素会比所有条目列表少，所以选中条目在外部，这样有可能减少循环次数
+        selectedItemList.forEachBetter { oldSelected ->
+            val found = itemList.find { match(oldSelected, it) }
+            //如果选中条目仍在条目列表存在，则视为有效选中项
+            if (found != null) {
+                //添加新查的列表中的“相同”元素，可能会有更新，所以不一定完全相同
+                stillSelectedList.add(found)
+            }
+        }
+
+        if (pageChanged()) {
+            // page changed, and selected list not updated
+            return true
+        }
+
+        selectedItemList.clear()
+        selectedItemList.addAll(stillSelectedList)
+
+        //如果选中条目为空，退出选择模式
+        if (selectedItemList.isEmpty()) {
+            quitSelectionMode()
+        }
+    }
+
+
+    // page not changed, and selected item list updated
+    return false
+}
+
+
+fun parseIntOrDefault(str:String, default:Int?):Int? {
+    return try {
+        str.trim().toInt()
+    }catch (_:Exception){
+        default
+    }
+}
+
+fun parseLongOrDefault(str:String, default:Long?):Long? {
+    return try {
+        str.trim().toLong()
+    }catch (_:Exception){
+        default
+    }
+}
+
+fun parseDoubleOrDefault(str:String, default:Double?):Double? {
+    return try {
+        str.trim().toDouble()
+    }catch (_:Exception){
+        default
+    }
+}
+
+fun compareStringAsNumIfPossible(str1: String, str2: String, ignoreCase: Boolean = true):Int {
+    val str1Num = parseDoubleOrDefault(str1, null)
+    if(str1Num != null) {
+        val str2Num = parseDoubleOrDefault(str2, null)
+        if(str2Num != null) {
+            return str1Num.compareTo(str2Num)
+        }
+    }
+
+    return str1.compareTo(str2, ignoreCase = ignoreCase)
+}
+
+//从v2rayNG 拷的
+fun receiverFlags(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    ContextCompat.RECEIVER_EXPORTED
+} else {
+    ContextCompat.RECEIVER_NOT_EXPORTED
+}
+
+fun copyTextToClipboard(context: Context, text: String, label:String="label") {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clip = ClipData.newPlainText(label, text) // 创建剪贴板数据
+    clipboard.setPrimaryClip(clip) // 设置剪贴板内容
+}
+
+fun copyAndShowCopied(
+    context:Context,
+    clipboardManager: androidx.compose.ui.platform.ClipboardManager,
+    text:String
+) {
+    clipboardManager.setText(AnnotatedString(text))
+    Msg.requireShow(context.getString(R.string.copied))
+}
+
+fun genHttpHostPortStr(host:String, port:String, https:Boolean = false) : String {
+    //如果host 是 0.0.0.0 换成 127.0.0.1，否则使用原ip
+    val host = if(host == Cons.zero000Ip) Cons.localHostIp else host
+    val prefix = if(https) "https://" else "http://"
+    return "$prefix$host:$port"
+}
+
+fun getInstalledAppList(context:Context, selected:(AppInfo)->Boolean = {false}):List<AppInfo> {
+    val packageManager = context.packageManager
+    val packages = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
+    val apps = mutableListOf<AppInfo>()
+
+    for (pkg in packages) {
+        val applicationInfo = pkg.applicationInfo ?: continue
+
+        val appInfo = rawAppInfoToAppInfo(applicationInfo, packageManager, selected) ?: continue
+
+        apps.add(appInfo)
+    }
+
+    return apps
+}
+
+fun trimLineBreak(str:String) :String {
+    return str.trim { it == '\n' || it == '\r' }
+}
+
+fun isStartInclusiveEndExclusiveRangeValid(start:Int, endExclusive:Int, size:Int):Boolean {
+  return  start < endExclusive && start >= 0 && start < size && endExclusive > 0 && endExclusive <= size
+}
+
+suspend fun isLocked(mutex: Mutex):Boolean {
+    // delay 1 to make locked check more correct
+    //先延迟一毫秒再检查，不然短时间内检查isLocked可能有误
+    delay(1)
+    return mutex.isLocked
+}
+
+suspend fun doActWithLockIfFree(mutex: Mutex, whoCalled:String, act: suspend ()->Unit) {
+    val logPrefix = "#doActWithLockIfFree, called by '$whoCalled'";
+
+    if(isLocked(mutex)) {
+        if(AppModel.devModeOn) {
+            MyLog.d(TAG, "$logPrefix: lock is busy, task will not run")
+        }
+
+        return
+    }
+
+    if(AppModel.devModeOn) {
+        MyLog.d(TAG, "$logPrefix: lock is free, will run task")
+    }
+
+    // run task
+    mutex.withLock { act() }
+
+    if(AppModel.devModeOn) {
+        MyLog.d(TAG, "$logPrefix: task completed")
+    }
+
+}
+
+suspend fun apkIconOrNull(context:Context, apkPath:String, iconSizeInPx:Int): ImageBitmap? {
+    return try {
+        val pm = context.packageManager
+
+        //未考证：第2个参数是个flag值，可获取附加信息，如不需要可设为0
+//        val appInfo = pm.getPackageArchiveInfo(apkPath, PackageManager.GET_ACTIVITIES)!!
+        val appInfo = pm.getPackageArchiveInfo(apkPath, 0)!!
+
+        delay(1)
+
+        // https://stackoverflow.com/a/14313280
+        appInfo.applicationInfo!!.let {
+            // 这两行是关键
+            it.sourceDir = apkPath
+            it.publicSourceDir = apkPath
+
+            // appName
+//            val appName = it.loadLabel(pm).toString()
+
+            // appIcon
+            val icon = it.loadIcon(pm).toBitmapOrNull(width = iconSizeInPx, height = iconSizeInPx)!!.asImageBitmap()
+
+            delay(1)
+
+            icon
+        }
+
+    }catch (e: Exception) {
+//        MyLog.d(TAG, "#apkIconOrNull() err: ${e.stackTraceToString()}")
+        //这种日志没什么好记的，就算获取失败，我也没什么好改的，简单打印下错误信息就行
+        e.printStackTrace()
+        null
+    }
+}
+
+suspend fun getVideoThumbnail(videoPath: String): ImageBitmap? {
+    return try {
+        val retriever = MediaMetadataRetriever()
+
+        delay(1)
+
+        try {
+            // 设置数据源
+            retriever.setDataSource(videoPath)
+            // 获取缩略图，参数为时间戳（单位为微秒），可以设置为0获取视频的第一帧
+            // 假设常见的每秒24帧，获取第1200帧，就是50000000微秒
+            val frame = retriever.getFrameAtTime(50000000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)!!.asImageBitmap()
+
+            delay(1)
+
+            frame
+        } catch (e: Exception) {
+//            MyLog.d(TAG, "#getVideoThumbnail() err: ${e.stackTraceToString()}")
+            e.printStackTrace()
+            null
+        } finally {
+            retriever.release()
+        }
+    }catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+
+fun paddingLineNumber(lineNum:String, expectLength:Int): String {
+    return lineNum.padStart(expectLength, ' ')
+}
+
+fun getRangeForRenameFile(fileName:String):TextRange {
+    val lastIndexOfDot = fileName.lastIndexOf('.')
+
+    // 如果'.'在文件名开头或没有'.'，选中整个文件名；否则选中'.'之前的部分，不包括'.'本身
+    return TextRange(0, if(lastIndexOfDot > 0) lastIndexOfDot else fileName.length)
+}
+
+fun appendSecondsUnit(str:String) = str+"s";
+
+
+/**
+ * get line number and column both are start from 1, support format 'line:column'
+ *
+ * @return Pair(lineNum, columnNum), both are starts from 1, you can subtract 1 to trans them to index
+ */
+fun parseLineAndColumn(str:String) = try {
+    val lineAndColumn = str.split(":")
+
+    //删下首尾空格，增加容错率，然后尝试转成int
+    val lineNum = lineAndColumn[0].trim().toInt()
+
+//       // deprecated, because supported to go to relative line number and it maybe less than 1, maybe same as EOF line num, so, ignore EOF check at here
+//        val retLine = if(line == LineNum.EOF.LINE_NUM) {  // if is EOF, return last line number, then can go to end of file
+//            actuallyLastLineNum
+//        }else {
+//            line
+//        }
+
+    val columnNum = lineAndColumn.getOrNull(1)?.trim()?.toInt() ?: 1
+    val isRelative = str.startsWith("+") || str.startsWith("-")
+    LineNumParseResult(lineNum, columnNum, isRelative)
+}catch (e:Exception) {
+    // parse int failed, then go first line
+    LineNumParseResult()
+}
+
+fun onOffText(enabled:Boolean) = if(enabled) "ON" else "OFF";
+
+fun tabToSpaces(spacesCount:Int) = if(spacesCount > 0) " ".repeat(spacesCount) else "\t"
+
+fun getNextIndentByCurrentStr(current:String?, aTabToNSpaces:Int):String {
+    if(current == null) {
+        return ""
+    }
+
+    val sb = StringBuilder()
+    for(i in current) {
+        if(IndentChar.isIndent(i)) {
+            sb.append(i)
+        }else {
+            break
+        }
+    }
+
+    // x fixed: Disabled reason: it will cause pasted content have wrong intent, so disabled
+    // x 已修复：改成在调用此方法前做判断了，如果可能是粘贴的内容，则不加缩进，否则加缩进，不一定准，但一般够用
+    // append extras spaces for block start
+    appendIndentForUnClosedSignPair(current, sb, aTabToNSpaces)
+
+    return sb.toString()
+}
+
+private fun appendIndentForUnClosedSignPair(current: String, sb: StringBuilder, aTabToNSpaces: Int) {
+    if (current.trim().let {
+            it.endsWith("{")
+//                    || it.endsWith("(")
+//                    || it.endsWith("[")
+
+                    // e.g. for yml
+//                    || it.endsWith(":")
+
+                    // e.g. for html xml, if only has "open" sign without "close", add indent
+                    // if has pair open+close, then it should mod 2 equals to 0,
+                    // else, means have not enough close sign, so we should add indent
+//                    || it.pairClosed("<", "</").not()
+    }) {
+        sb.append(tabToSpaces(aTabToNSpaces))
+    }
+}
+
+fun appAvailHeapSizeInMb():Long {
+    val funName = "appAvailHeapSize"
+
+    // src: https://stackoverflow.com/a/19267315
+    val runtime = Runtime.getRuntime()
+    val usedMemInMB = (runtime.totalMemory() - runtime.freeMemory()) / 1048576L
+    val maxHeapSizeInMB = runtime.maxMemory() / 1048576L
+    val availHeapSizeInMB = maxHeapSizeInMB - usedMemInMB
+
+    if(AppModel.devModeOn) {
+        MyLog.i(TAG, "#$funName: ${availHeapSizeInMB}MB")
+    }
+
+    return availHeapSizeInMB
+}
+
+/**
+ *
+ * if no more memory over limit times, will do act then return true, else return false and do nothing
+ *
+ * Don't call this on main thread
+ * even call, will not throw an err,
+ * because the @WorkerThread is not a force limit
+ *
+ * @return true means no more memory, otherwise false
+ */
+@Deprecated("due to it use a delay for more accurately result, so if run this in concurrency way, maybe got a backlog of many mem check tasks")
+@WorkerThread
+fun noMoreHeapMemThenDoAct_Deprecated(
+    lowestMemInMb: Int = 30,
+    lowestMemLimitCount: Int = 3,
+    act: () -> Unit,
+) : Boolean  {
+    var lowMemCount = 0
+
+    while (true) {
+        if(appAvailHeapSizeInMb() < lowestMemInMb) {
+            if(++lowMemCount >= lowestMemLimitCount) {
+                act()
+
+                return true
+            }
+
+            // 如果内存不够，会增长，直到无法增长，然后throw OOM，所以需要delay一下才能确定是否还有空闲内存
+            runBlocking { delay(100) }
+        }else {
+            return false
+        }
+    }
+}
+
+
+@WorkerThread
+fun noMoreHeapMemThenDoAct(
+    // 这个值不应该太大，因为内存过低时会回收，
+    // 回收后可能会有更多可用内存，如果太大，在回收内存前就会认为内存不足了
+    lowestMemInMb: Int = 16,
+
+    act: () -> Unit,
+) : Boolean  {
+    if(appAvailHeapSizeInMb() < lowestMemInMb) {
+        act()
+
+        return true
+
+    }else {
+        return false
+    }
 }

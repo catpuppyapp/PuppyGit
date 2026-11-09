@@ -1,0 +1,2 @@
+- Make text of dialog copyable
+- Add changelog dialog

@@ -19,6 +19,8 @@ package com.catpuppyapp.puppygit.data
 import android.content.Context
 import com.catpuppyapp.puppygit.data.repository.CredentialRepository
 import com.catpuppyapp.puppygit.data.repository.CredentialRepositoryImpl
+import com.catpuppyapp.puppygit.data.repository.DomainCredentialRepository
+import com.catpuppyapp.puppygit.data.repository.DomainCredentialRepositoryImpl
 import com.catpuppyapp.puppygit.data.repository.ErrorRepository
 import com.catpuppyapp.puppygit.data.repository.ErrorRepositoryImpl
 import com.catpuppyapp.puppygit.data.repository.PassEncryptRepository
@@ -37,13 +39,22 @@ import com.catpuppyapp.puppygit.data.repository.StorageDirRepositoryImpl
  */
 interface AppContainer {
     val db:AppDatabase
+
     val repoRepository: RepoRepository
     val errorRepository: ErrorRepository
     val credentialRepository: CredentialRepository
     val remoteRepository: RemoteRepository
+
+    @Deprecated("废弃")
     val settingsRepository: SettingsRepository
+
+    @Deprecated("20241205 之后，采用主密码，此类已不再维护，但保留类并仍在启动时检查是否需要迁移密码以兼容旧版本app")
     val passEncryptRepository: PassEncryptRepository
+
+    @Deprecated("废弃")
     val storageDirRepository: StorageDirRepository
+
+    val domainCredentialRepository: DomainCredentialRepository
     // other repository write here
 }
 
@@ -70,13 +81,23 @@ class AppDataContainer(private val context: Context) : AppContainer {
     override val remoteRepository: RemoteRepository by lazy {
         RemoteRepositoryImpl(db.remoteDao())
     }
+
+    @Deprecated("废弃")
     override val settingsRepository: SettingsRepository by lazy {
         SettingsRepositoryImpl(db.settingsDao())
     }
+
+    @Deprecated("已废弃")
     override val passEncryptRepository: PassEncryptRepository by lazy {
         PassEncryptRepositoryImpl(db.passEncryptDao())
     }
+
+    @Deprecated("废弃")
     override val storageDirRepository: StorageDirRepository by lazy {
         StorageDirRepositoryImpl(db.storageDirDao())
+    }
+
+    override val domainCredentialRepository: DomainCredentialRepository by lazy {
+        DomainCredentialRepositoryImpl(db.domainCredentialDao())
     }
 }

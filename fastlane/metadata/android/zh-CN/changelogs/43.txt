@@ -1,0 +1,1 @@
+- 修复当编辑仓库信息但不改变giturl时，即使giturl是sshurl，新凭据的输入框也依旧显示 “用户名/密码” 而不是 “私钥/密码短语”(issue https://github.com/catpuppyapp/PuppyGit/issues/5)

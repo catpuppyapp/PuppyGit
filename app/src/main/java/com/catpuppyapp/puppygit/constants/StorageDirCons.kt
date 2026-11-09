@@ -45,7 +45,7 @@ object StorageDirCons {
 
     }
 
-    val separator ="/"
+    private const val separator = "/"
 
     object DefaultStorageDir {
         /**

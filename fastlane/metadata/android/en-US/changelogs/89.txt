@@ -1,0 +1,2 @@
+- adjust Editor style
+- improve UI for some screens

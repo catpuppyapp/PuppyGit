@@ -1,0 +1,3 @@
+- add turkish (pr #41, thx @mikropsoft)
+- fix resolve file path failed in some cases
+

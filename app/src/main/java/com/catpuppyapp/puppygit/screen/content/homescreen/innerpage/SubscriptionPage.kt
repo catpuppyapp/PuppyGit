@@ -1,62 +1,61 @@
 package com.catpuppyapp.puppygit.screen.content.homescreen.innerpage
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.ComposeHelper
 import com.catpuppyapp.puppygit.utils.Msg
 import com.catpuppyapp.puppygit.utils.MyLog
-import com.catpuppyapp.puppygit.utils.state.StateUtil
+import com.catpuppyapp.puppygit.utils.baseVerticalScrollablePageModifier
 
-private val TAG = "SubscriptionPage"
+private const val TAG = "SubscriptionPage"
 
 @Composable
 fun SubscriptionPage(contentPadding: PaddingValues, needRefresh: MutableState<String>, openDrawer: ()->Unit){
 
-    val appContext = LocalContext.current
-    val exitApp = AppModel.singleInstanceHolder.exitApp;
+    val activityContext = LocalContext.current
+    val exitApp = AppModel.exitApp;
 
-    val appIcon = AppModel.getAppIcon(appContext)
+    //这个页面暂时没用了，如果有用的话，也不要自己获取图标，改用AppIcon组件
+//    val appIcon = AppModel.getAppIcon(activityContext)
 
     val clipboardManager = LocalClipboardManager.current
 
     val copy={text:String ->
         clipboardManager.setText(AnnotatedString(text))
-        Msg.requireShow(appContext.getString(R.string.copied))
+        Msg.requireShow(activityContext.getString(R.string.copied))
     }
 
     //back handler block start
-    val isBackHandlerEnable = StateUtil.getRememberSaveableState(initValue = true)
-    val backHandlerOnBack = ComposeHelper.getDoubleClickBackHandler(appContext = appContext, openDrawer=openDrawer, exitApp= exitApp)
+    val isBackHandlerEnable = rememberSaveable { mutableStateOf(true) }
+    val backHandlerOnBack = ComposeHelper.getDoubleClickBackHandler(context = activityContext, openDrawer=openDrawer, exitApp= exitApp)
     //注册BackHandler，拦截返回键，实现双击返回和返回上级目录
     BackHandler(enabled = isBackHandlerEnable.value, onBack = {backHandlerOnBack()})
     //back handler block end
 
 
 
-    Column (modifier = Modifier
-        .padding(contentPadding)
-        .padding(top = 10.dp)
-        .fillMaxSize()
-        .verticalScroll(StateUtil.getRememberScrollState())
+    Column (
+        modifier = Modifier
+            .baseVerticalScrollablePageModifier(contentPadding, rememberScrollState())
+            .padding(MyStyleKt.defaultItemPadding)
         ,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
     ){
 //        //图标，app名，contact
 //        Image(bitmap = appIcon, contentDescription = stringResource(id = R.string.app_icon))
@@ -90,7 +89,7 @@ fun SubscriptionPage(contentPadding: PaddingValues, needRefresh: MutableState<St
 //                                val caller="buyButtonOnClick@"
 //                                Billing.doBuyIfReady(appContext, productDetails) { e:Exception ->
 //                                    // exceptionHandler
-//                                    Msg.requireShowLongDuration("buy err:"+e.localizedMessage)
+//                                    Msg.requireShowLongDuration("buy err: "+e.localizedMessage)
 //                                    MyLog.e(TAG, "#$caller: err: ${e.stackTraceToString()}")
 //                                }
 //                            }
@@ -114,7 +113,7 @@ fun SubscriptionPage(contentPadding: PaddingValues, needRefresh: MutableState<St
 //
 //        if(!isReleaseMode()) {
 //            Spacer(modifier = Modifier.height(30.dp))
-//            HorizontalDivider()
+//            MyHorizontalDivider()
 //            Spacer(modifier = Modifier.height(5.dp))
 //
 //            Row {

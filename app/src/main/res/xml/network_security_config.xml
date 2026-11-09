@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
 <!--    cleartextTrafficPermitted 是否允许明文流量-->
-    <base-config cleartextTrafficPermitted="false">
+<!--    如果拒绝，连http to 127.0.0.1 都不能连，测试不了app的http service运行状态，所以允许-->
+    <base-config cleartextTrafficPermitted="true">
 <!--        <domain includeSubdomains="true">github.com</domain>-->
         <trust-anchors>
 <!--            <certificates src="@raw/myca"/>-->
 <!--            trust system certificates-->
             <certificates src="system"/>
-<!--            <certificates src="user"/>-->
+
+            <!-- 这个配置不影响通过jni 调用的c代码，而我的app是通过c代码和git远程仓库通信的，
+                所以这个允许与否其实意义不大，如果需要允许自定义证书，可以放到我的app的cert-user目录下 -->
+            <certificates src="user"/>
         </trust-anchors>
     </base-config>
 </network-security-config>

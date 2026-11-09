@@ -1,110 +1,95 @@
 package com.catpuppyapp.puppygit.compose
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
 import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.style.MyStyleKt
-import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
-import com.catpuppyapp.puppygit.utils.Msg
 import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
-import com.catpuppyapp.puppygit.utils.state.StateUtil
+import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
 import com.github.git24j.core.Repository
 import java.io.File
 
 
-private val TAG = "ApplyPatchDialog"
-private val stateKeyTag = "ApplyPatchDialog"
-
 
 @Composable
 fun ApplyPatchDialog(
-    showDialog: MutableState<Boolean>,
+    errMsg: String,
+    selectedRepo:CustomStateSaveable<RepoEntity>,
+    checkOnly:MutableState<Boolean>,
     patchFileFullPath:String,
+    repoList:List<RepoEntity>,
+    loadingRepoList: Boolean,
     onCancel: () -> Unit,
     onErrCallback:suspend (err:Exception, selectedRepoId:String)->Unit,
     onFinallyCallback:()->Unit,
     onOkCallback:()->Unit,
 ) {
 
-    val appContext = AppModel.singleInstanceHolder.appContext
-
-    val repoList = StateUtil.getCustomSaveableStateList(keyTag = stateKeyTag, keyName = "repoList") {
-        listOf<RepoEntity>()
-    }
-
-    val selectedRepo =StateUtil.getCustomSaveableState(keyTag = stateKeyTag, keyName = "selectedRepo") {
-        RepoEntity(id="")
-    }
-
-    ConfirmDialog(
-        okBtnEnabled = repoList.value.isNotEmpty() && selectedRepo.value.id.isNotBlank(),
+    ConfirmDialog2(
+        okBtnEnabled = loadingRepoList.not() && repoList.isNotEmpty() && selectedRepo.value.id.isNotBlank(),
         title = stringResource(R.string.apply_patch),
         requireShowTextCompose = true,
         textCompose = {
-            Column {
-                Text(text = stringResource(R.string.select_target_repo)+":")
-                Spacer(modifier = Modifier.height(10.dp))
-                MyLazyColumn(
-                    modifier = Modifier.heightIn(max=150.dp),
-                    requireUseParamModifier = true,
-                    contentPadding = PaddingValues(0.dp),
-                    list = repoList.value,
-                    listState = StateUtil.getRememberLazyListState(),
-                    requireForEachWithIndex = true,
-                    requirePaddingAtBottom =false
-                ) {k, it ->
+            ScrollableColumn {
+                val hasErr = errMsg.isNotEmpty()
+                if(hasErr || loadingRepoList || repoList.isEmpty()) {  //正在加载仓库列表，或者加载完了，但仓库列表为空
                     Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = MyStyleKt.RadioOptions.minHeight)
-
-                            .selectable(
-                                selected = it.id == selectedRepo.value.id,
-                                onClick = {
-                                    //更新选择值
-                                    selectedRepo.value = it
-                                },
-                                role = Role.RadioButton
-                            )
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(
-                            selected = it.id == selectedRepo.value.id,
-                            onClick = null // null recommended for accessibility with screenreaders
-                        )
-                        Text(
-                            text = it.repoName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 10.dp)
-                        )
+                        MySelectionContainer {
+                            if(hasErr) {
+                                Text(errMsg, color = MyStyleKt.TextColor.error())
+                            }else {
+                                Text(stringResource(if(loadingRepoList) R.string.loading else R.string.repo_list_is_empty))
+                            }
+                        }
+                    }
+                } else {  //加载仓库列表完毕，并且列表非空
+                    MySelectionContainer {
+                        DefaultPaddingText(text = stringResource(R.string.select_target_repo)+":")
                     }
 
-                }
+                    Spacer(modifier = Modifier.height(5.dp))
 
+                    SingleSelectList(
+                        optionsList = repoList,
+                        menuItemSelected = {idx, value -> value.id == selectedRepo.value.id},
+                        menuItemOnClick = {idx, value -> selectedRepo.value = value},
+                        menuItemFormatter = {idx, value -> value?.repoName ?: ""},
+                        selectedOptionIndex = null,
+                        selectedOptionValue = selectedRepo.value
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    MyCheckBox(stringResource(R.string.check_only), checkOnly)
+                    if(checkOnly.value) {
+                        MySelectionContainer {
+                            DefaultPaddingText(stringResource(R.string.apply_patch_check_note))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
             }
         },
-        onCancel = { onCancel() }) {
+        okBtnText = stringResource(R.string.apply),
+        onCancel = { onCancel() }
+    ) {  // onOK
 
         doJobThenOffLoading {
             try {
@@ -123,6 +108,7 @@ fun ApplyPatchDialog(
                     val ret = Libgit2Helper.applyPatchFromFile(
                         inputFile,
                         repo,
+                        checkOnlyDontRealApply = checkOnly.value
                     )
 
                     if(ret.hasError()) {
@@ -141,26 +127,6 @@ fun ApplyPatchDialog(
             }finally {
                 onFinallyCallback()
             }
-        }
-    }
-
-
-    LaunchedEffect(Unit) {
-        doJobThenOffLoading job@{
-            val repoDb = AppModel.singleInstanceHolder.dbContainer.repoRepository
-            val listFromDb = repoDb.getReadyRepoList()
-            if(listFromDb.isEmpty()) {
-                Msg.requireShowLongDuration(appContext.getString(R.string.plz_add_a_repo_then_try_again))
-                //关闭弹窗
-                onCancel()
-                return@job
-            }
-
-            repoList.value.clear()
-            repoList.value.addAll(listFromDb)
-
-            //默认选中第一个仓库
-            selectedRepo.value = repoList.value[0]
         }
     }
 }

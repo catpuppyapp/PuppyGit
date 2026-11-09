@@ -1,0 +1,2 @@
+- editor support detect file encoding
+- support rebase as default when pull

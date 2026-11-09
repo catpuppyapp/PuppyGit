@@ -1,7 +1,8 @@
 package com.catpuppyapp.puppygit.utils.snapshot
 
 import com.catpuppyapp.puppygit.etc.Ret
-import java.io.File
+import com.catpuppyapp.puppygit.fileeditor.texteditor.state.TextEditorState
+import com.catpuppyapp.puppygit.screen.shared.FuckSafFile
 
 /**
  * 所有创建snapshot的方法最终都应调用这个接口的方法来执行创建快照的操作，这样方便管理，例如想禁止创建快照，只需修改本接口的方法实现即可。
@@ -13,7 +14,13 @@ interface SnapshotCreator{
      *
      * @return Ret<Pair<fileName, fileFullPath>>
      */
-    fun createSnapshotByContentAndGetResult(srcFileName:String, fileContent:String, flag:String): Ret<Pair<String, String>?>
+    fun createSnapshotByContentAndGetResult(
+        srcFileName: String,
+        fileContent: String?,
+        editorState: TextEditorState,
+        trueUseContentFalseUseEditorState: Boolean,
+        flag: SnapshotFileFlag
+    ): Ret<Pair<String, String>?>
 
 
     /**
@@ -24,5 +31,5 @@ interface SnapshotCreator{
      *
      * @return Ret<Pair<fileName, fileFullPath>>
      */
-    fun createSnapshotByFileAndGetResult(srcFile: File, flag:String):Ret<Pair<String,String>?>
+    fun createSnapshotByFileAndGetResult(srcFile: FuckSafFile, flag:SnapshotFileFlag):Ret<Pair<String,String>?>
 }

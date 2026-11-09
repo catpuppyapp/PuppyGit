@@ -1,0 +1,47 @@
+name: test - use cmake provide by android sdk
+
+on:
+  workflow_dispatch:  # 允许手动触发工作流
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04  # 使用 Ubuntu 运行环境
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'  # 设置 JDK 版本
+          distribution: 'temurin'  # 指定 JDK 发行版（例如 'adopt', 'zulu', 'temurin', 'oracle' 等）
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            curl \
+            make \
+            tar \
+            maven \
+            unzip \
+            git
+
+      - name: Install cmake by Android SDK
+        run: |
+          echo "Downloading: Android SDK"
+          # ANDROID_HOME is android sdk root, is sdk root, not ndk root
+          export build_root=~/puppylibsbuild
+          export ANDROID_HOME=$build_root/android-sdk
+          export CMAKE_VERSION=3.31.1
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip cmdline-tools.zip -d $ANDROID_HOME/
+          echo "install cmake by Android sdkmanager"
+          yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --install "cmake;$CMAKE_VERSION" --sdk_root=$ANDROID_HOME
+          $ANDROID_HOME/cmdline-tools/bin/sdkmanager --list --sdk_root=$ANDROID_HOME
+          export CMAKE_PATH=$ANDROID_HOME/cmake/$CMAKE_VERSION/bin/cmake
+          $CMAKE_PATH --version
+          
+          echo "Installation complete."

@@ -5,6 +5,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.catpuppyapp.puppygit.play.pro.R
@@ -12,17 +13,19 @@ import com.catpuppyapp.puppygit.play.pro.R
 
 /**
  * difference with `ConfirmDialog`: this support hidden onOk/onCancel Button and custom onDismiss(default do onCancel)
+ * and the default confirm text is "OK", denied text is "Cancel"
  */
 @Composable
 fun ConfirmDialog2(
+    modifier: Modifier=Modifier,
     title: String="",
     text: String="",
     requireShowTitleCompose:Boolean=false,
     titleCompose:@Composable ()->Unit={},
     requireShowTextCompose:Boolean=false,
     textCompose:@Composable ()->Unit={},
-    cancelBtnText: String = stringResource(R.string.no),
-    okBtnText: String = stringResource(R.string.yes),
+    cancelBtnText: String = stringResource(R.string.cancel),
+    okBtnText: String = stringResource(R.string.ok),
     cancelTextColor: Color = Color.Unspecified,
     okTextColor: Color = Color.Unspecified,
     okBtnEnabled: Boolean=true,
@@ -33,19 +36,22 @@ fun ConfirmDialog2(
     onOk: () -> Unit,
 ) {
     AlertDialog(
+        modifier = modifier,
         title = {
             if(requireShowTitleCompose) {
                 titleCompose()
             }else {
-                Text(title)
+                DialogTitle(title)
             }
         },
         text = {
             if(requireShowTextCompose) {
                 textCompose()
             }else {
-                Row {
-                    Text(text)
+                CopyScrollableColumn {
+                    Row {
+                        Text(text)
+                    }
                 }
             }
         },
@@ -74,14 +80,14 @@ fun ConfirmDialog2(
                 ) {
                     Text(
                         text = okBtnText,
-                        color = okTextColor,
+                        color = if(okBtnEnabled) okTextColor else Color.Unspecified,
                     )
                 }
 
             }
         },
 
-        )
+    )
 
 
 }

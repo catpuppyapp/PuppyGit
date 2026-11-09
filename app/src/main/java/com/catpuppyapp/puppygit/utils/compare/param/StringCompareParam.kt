@@ -1,21 +1,14 @@
 package com.catpuppyapp.puppygit.utils.compare.param
 
 class StringCompareParam(
-    val chars:String,
-): CompareParam {
-    override fun getLen(): Int {
-        return chars.length
-    }
-
-    override fun getChar(index:Int): Char {
-        return chars.get(index)
-    }
-
-    override fun isEmpty(): Boolean {
-        return chars.isEmpty()
-    }
-
-    override fun isOnlyLineSeparator(): Boolean {
-        return getLen()==1 && getChar(0)=='\n'
+    chars:String,
+    length:Int,
+): CompareParam<String>(chars, length) {
+    override fun getTextNoEndOfNewLine(): CompareParam<String> {
+        return if(hasEndOfNewLine()) {
+            StringCompareParam(chars, length - 1)
+        }else {
+            this
+        }
     }
 }

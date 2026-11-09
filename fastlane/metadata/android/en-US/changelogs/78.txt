@@ -1,0 +1,2 @@
+- fix: link credential to uppercase HTTPS git url not work
+- adjust CredentialManager UI

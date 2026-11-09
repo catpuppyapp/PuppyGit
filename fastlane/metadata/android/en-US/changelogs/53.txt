@@ -1,0 +1,1 @@
+- update Editor: reload file will not clear undo stack

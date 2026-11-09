@@ -1,0 +1,2 @@
+- show TimeZone info at Commits/Tags/Reflogs/FileHistory if unset timezone for app
+- remove "PuppyGit" from auto generated commit msg

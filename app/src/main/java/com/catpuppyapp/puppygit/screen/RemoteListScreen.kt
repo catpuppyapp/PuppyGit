@@ -1,6 +1,5 @@
 package com.catpuppyapp.puppygit.screen
 
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -9,36 +8,33 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Downloading
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.VerticalAlignTop
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -47,16 +43,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.compose.BottomSheet
 import com.catpuppyapp.puppygit.compose.BottomSheetItem
+import com.catpuppyapp.puppygit.compose.CenterPaddingRow
 import com.catpuppyapp.puppygit.compose.ConfirmDialog
+import com.catpuppyapp.puppygit.compose.ConfirmDialog2
 import com.catpuppyapp.puppygit.compose.CopyableDialog
+import com.catpuppyapp.puppygit.compose.CopyableDialog2
 import com.catpuppyapp.puppygit.compose.CreateRemoteDialog
+import com.catpuppyapp.puppygit.compose.FetchRemotesDialog
 import com.catpuppyapp.puppygit.compose.FilterTextField
-import com.catpuppyapp.puppygit.compose.LoadingText
+import com.catpuppyapp.puppygit.compose.FullScreenScrollableColumn
+import com.catpuppyapp.puppygit.compose.GoToTopAndGoToBottomFab
 import com.catpuppyapp.puppygit.compose.LongPressAbleIconBtn
+import com.catpuppyapp.puppygit.compose.MyHorizontalDivider
 import com.catpuppyapp.puppygit.compose.MyLazyColumn
-import com.catpuppyapp.puppygit.compose.RemoteItem
+import com.catpuppyapp.puppygit.compose.MySelectionContainer
+import com.catpuppyapp.puppygit.compose.PullToRefreshBox
+import com.catpuppyapp.puppygit.compose.RepoInfoDialog
+import com.catpuppyapp.puppygit.compose.ScrollableColumn
 import com.catpuppyapp.puppygit.compose.SetBranchForRemoteDialog
-import com.catpuppyapp.puppygit.compose.SmallFab
 import com.catpuppyapp.puppygit.compose.UnLinkCredentialAndRemoteDialogForRemoteListPage
 import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.data.entity.RemoteEntity
@@ -67,25 +71,31 @@ import com.catpuppyapp.puppygit.dev.proFeatureEnabled
 import com.catpuppyapp.puppygit.dev.shallowAndSingleBranchTestPassed
 import com.catpuppyapp.puppygit.dto.RemoteDto
 import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.screen.content.listitem.RemoteItem
+import com.catpuppyapp.puppygit.screen.functions.defaultTitleDoubleClick
+import com.catpuppyapp.puppygit.screen.functions.filterModeActuallyEnabled
+import com.catpuppyapp.puppygit.screen.functions.filterTheList
+import com.catpuppyapp.puppygit.screen.functions.triggerReFilter
+import com.catpuppyapp.puppygit.settings.SettingsUtil
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.user.UserUtil
 import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.catpuppyapp.puppygit.utils.Msg
 import com.catpuppyapp.puppygit.utils.MyLog
-import com.catpuppyapp.puppygit.utils.UIHelper
+import com.catpuppyapp.puppygit.utils.cache.Cache
 import com.catpuppyapp.puppygit.utils.changeStateTriggerRefreshPage
 import com.catpuppyapp.puppygit.utils.createAndInsertError
 import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
 import com.catpuppyapp.puppygit.utils.getSecFromTime
+import com.catpuppyapp.puppygit.utils.replaceStringResList
 import com.catpuppyapp.puppygit.utils.showErrAndSaveLog
-import com.catpuppyapp.puppygit.utils.state.StateUtil
+import com.catpuppyapp.puppygit.utils.state.mutableCustomStateListOf
+import com.catpuppyapp.puppygit.utils.state.mutableCustomStateOf
 import com.github.git24j.core.Remote
 import com.github.git24j.core.Repository
-import java.net.URI
 
-private val TAG = "RemoteListScreen"
-private val stateKeyTag = "RemoteListScreen"
+private const val TAG = "RemoteListScreen"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -98,49 +108,53 @@ fun RemoteListScreen(
     repoId:String,
     naviUp: () -> Boolean,
 ) {
-    val homeTopBarScrollBehavior = AppModel.singleInstanceHolder.homeTopBarScrollBehavior
-    val appContext = AppModel.singleInstanceHolder.appContext
-    val navController = AppModel.singleInstanceHolder.navController
-    val dbContainer = AppModel.singleInstanceHolder.dbContainer
+    val stateKeyTag = Cache.getSubPageKey(TAG)
+
+    val homeTopBarScrollBehavior = AppModel.homeTopBarScrollBehavior
+    val activityContext = LocalContext.current
+    val navController = AppModel.navController
+    val dbContainer = AppModel.dbContainer
     val scope = rememberCoroutineScope()
+    val settings = remember { SettingsUtil.getSettingsSnapshot() }
 
     //获取假数据
 //    val list = MockData.getErrorList(repoId,1,100);
-    val list = StateUtil.getCustomSaveableStateList(
-        keyTag = stateKeyTag,
-        keyName = "list",
-        initValue = listOf<RemoteDto>()
-    )
-    SideEffect {
-        Msg.msgNotifyHost()
-    }
+    val list = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "list", initValue = listOf<RemoteDto>())
+    val filterList = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "filterList", initValue = listOf<RemoteDto>())
+    val clipboardManager = LocalClipboardManager.current
+
+//
+//    SideEffect {
+//        Msg.msgNotifyHost()
+//    }
 
     //这个页面的滚动状态不用记住，每次点开重置也无所谓
-    val lazyListState = StateUtil.getRememberLazyListState()
-    val sheetState = StateUtil.getRememberModalBottomSheetState()
-    val showBottomSheet = StateUtil.getRememberSaveableState(initValue = false)
+    val lazyListState = rememberLazyListState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = MyStyleKt.BottomSheet.skipPartiallyExpanded)
+    val showBottomSheet = rememberSaveable { mutableStateOf(false)}
 //    val curObjInState = rememberSaveable{ mutableStateOf(ErrorEntity()) }
-    val curRepo = StateUtil.getCustomSaveableState(keyTag = stateKeyTag, keyName = "curRepo", initValue = RepoEntity(id="") )
-    val curObjInState = StateUtil.getCustomSaveableState(keyTag = stateKeyTag, keyName = "curObjInState", initValue = RemoteDto())
+    val curRepo = mutableCustomStateOf(keyTag = stateKeyTag, keyName = "curRepo", initValue = RepoEntity(id="") )
+    val curObjInState = mutableCustomStateOf(keyTag = stateKeyTag, keyName = "curObjInState", initValue = RemoteDto())
 //    val showClearAllConfirmDialog = StateUtil.getRememberSaveableState(initValue = false)
 //    val userIsPro = UserInfo.isPro()
+    val lastClickedItemKey = rememberSaveable{mutableStateOf(Cons.init_last_clicked_item_key)}
 
 
-    val needRefresh = StateUtil.getRememberSaveableState(initValue = "")
-    val showFetchAllDialog = StateUtil.getRememberSaveableState(initValue = false)
+    val needRefresh = rememberSaveable { mutableStateOf("")}
+    val showFetchAllDialog = rememberSaveable { mutableStateOf(false)}
 
-    val showSetUrlDialog = StateUtil.getRememberSaveableState(initValue = false)
-    val isPushUrl = StateUtil.getRememberSaveableState(initValue = false)
-    val urlTextForSetUrlDialog = StateUtil.getRememberSaveableState(initValue = "")
-    val oldUrlTextForSetUrlDialog = StateUtil.getRememberSaveableState(initValue = "")
-    val urlErrMsg = StateUtil.getRememberSaveableState(initValue = "")
+    val showSetUrlDialog = rememberSaveable { mutableStateOf(false)}
+    val isPushUrl = rememberSaveable { mutableStateOf(false)}
+    val urlTextForSetUrlDialog = rememberSaveable { mutableStateOf("")}
+    val oldUrlTextForSetUrlDialog = rememberSaveable { mutableStateOf("")}
+    val urlErrMsg = rememberSaveable { mutableStateOf( "")}
 
-    val showUnlinkCredentialDialog = StateUtil.getRememberSaveableState(initValue = false)
-    val showSetBranchDialog = StateUtil.getRememberSaveableState(initValue = false)
+    val showUnlinkCredentialDialog = rememberSaveable { mutableStateOf(false)}
+    val showSetBranchDialog = rememberSaveable { mutableStateOf( false)}
 
     val defaultLoadingText = stringResource(R.string.loading)
-    val isLoading = StateUtil.getRememberSaveableState(initValue = false)
-    val loadingText = StateUtil.getRememberSaveableState(initValue = defaultLoadingText)
+    val isLoading = rememberSaveable { mutableStateOf( false)}
+    val loadingText = rememberSaveable { mutableStateOf(defaultLoadingText)}
     val loadingOn = {msg:String ->
         loadingText.value=msg
         isLoading.value=true
@@ -150,9 +164,9 @@ fun RemoteListScreen(
         loadingText.value = defaultLoadingText
     }
 
-    val showCreateRemoteDialog = StateUtil.getRememberSaveableState(initValue = false)
-    val remoteNameForCreate = StateUtil.getRememberSaveableState(initValue = "")
-    val remoteUrlForCreate = StateUtil.getRememberSaveableState(initValue = "")
+    val showCreateRemoteDialog = rememberSaveable { mutableStateOf(false)}
+    val remoteNameForCreate = rememberSaveable { mutableStateOf( "")}
+    val remoteUrlForCreate = rememberSaveable { mutableStateOf("")}
 
     if(showCreateRemoteDialog.value) {
         CreateRemoteDialog(
@@ -175,19 +189,106 @@ fun RemoteListScreen(
         )
     }
 
-    val showDelRemoteDialog = StateUtil.getRememberSaveableState(initValue = false)
+
+    val renameFailedRefs = rememberSaveable { mutableStateOf("") }
+    val showRenameFailedRefsDialog = rememberSaveable { mutableStateOf(false) }
+    if(showRenameFailedRefsDialog.value) {
+        CopyableDialog2(
+            title = stringResource(R.string.error),
+            text = renameFailedRefs.value,
+            onCancel = { showRenameFailedRefsDialog.value = false }
+        ) {
+            showRenameFailedRefsDialog.value = false
+
+            val renameFailedRefsStr = renameFailedRefs.value
+            renameFailedRefs.value = ""
+            val renameFailedRefs = Unit  // avoid mistake use
+            clipboardManager.setText(AnnotatedString(renameFailedRefsStr))
+            Msg.requireShow(activityContext.getString(R.string.copied))
+        }
+    }
+
+    val showRenameDialog = rememberSaveable { mutableStateOf(false) }
+    val oldName = rememberSaveable { mutableStateOf("") }
+    val newName = rememberSaveable { mutableStateOf("") }
+    if(showRenameDialog.value) {
+        ConfirmDialog2(
+            okBtnEnabled = newName.value.isNotBlank(),
+            title = stringResource(R.string.rename),
+            requireShowTextCompose = true,
+            textCompose = {
+                ScrollableColumn {
+                    MySelectionContainer {
+                        Row {
+                            Text(text = stringResource(id = R.string.remote)+": ")
+                            Text(text = curObjInState.value.remoteName,
+                                fontWeight = FontWeight.ExtraBold,
+                                overflow = TextOverflow.Visible
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(15.dp))
+                    TextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = newName.value,
+                        singleLine = true,
+                        onValueChange = {
+                            newName.value = it
+                        },
+                        label = { Text(stringResource(R.string.new_name)) }
+                    )
+                }
+            },
+            onCancel = { showRenameDialog.value = false }
+        ) onOK@{
+            showRenameDialog.value = false
+            val newName = newName.value.trim()
+            val oldName = oldName.value
+            renameFailedRefs.value = ""
+
+            if(newName == oldName) {
+                return@onOK
+            }
+
+            doJobThenOffLoading(loadingOn, loadingOff, activityContext.getString(R.string.loading)) {
+                try {
+                    Repository.open(curRepo.value.fullSavePath).use { repo->
+                        val problems = Remote.rename(repo, oldName, newName)
+                        if(problems.isNotEmpty()) {
+                            renameFailedRefs.value = "Below refs rename failed, you need to edit config by yourself:\n\n${problems.joinToString("\n\n")}\n"
+                            showRenameFailedRefsDialog.value = true
+                        }else { //成功
+                            Msg.requireShow(activityContext.getString(R.string.success))
+                        }
+                    }
+
+                }catch (e: Exception) {
+                    val actionDesc = "rename remote"
+                    val errMsgPrefix = "$actionDesc err: remoteName='$oldName', newName='$newName' err="
+                    Msg.requireShowLongDuration(e.localizedMessage ?: errMsgPrefix)
+                    createAndInsertError(curRepo.value.id, errMsgPrefix + e.localizedMessage)
+                    MyLog.e(TAG, "$errMsgPrefix${e.stackTraceToString()}")
+                }finally {
+                    changeStateTriggerRefreshPage(needRefresh)
+                }
+            }
+        }
+    }
+
+
+    val showDelRemoteDialog = rememberSaveable { mutableStateOf(false) }
     if(showDelRemoteDialog.value) {
         val remoteWillDel = curObjInState.value
         val remoteNameWillDel = remoteWillDel.remoteName
         ConfirmDialog(
             title = stringResource(id = R.string.delete) +" '$remoteNameWillDel'",
             text = stringResource(id = R.string.are_you_sure),
-            okTextColor = MyStyleKt.TextColor.danger,
+            okTextColor = MyStyleKt.TextColor.danger(),
             onCancel = { showDelRemoteDialog.value = false }
         ) {
             showDelRemoteDialog.value = false
 
-            doJobThenOffLoading(loadingOn, loadingOff, appContext.getString(R.string.deleting)) {
+            doJobThenOffLoading(loadingOn, loadingOff, activityContext.getString(R.string.deleting)) {
                 try {
                     Repository.open(curRepo.value.fullSavePath).use { repo->
                         //删git仓库中的remote
@@ -197,7 +298,7 @@ fun RemoteListScreen(
                         //如果从git仓库删除remote成功或者错误信息是 “remote 'xxx' does not exist”，则删除db中的remote
                         if(ret.success() || noExist) {
                             //删db中的remote
-                            val remoteDb = AppModel.singleInstanceHolder.dbContainer.remoteRepository
+                            val remoteDb = AppModel.dbContainer.remoteRepository
                             remoteDb.delete(RemoteEntity(id=remoteWillDel.remoteId))  // delete其实是根据id删除的，所以只设id即可
                         }else{
                             throw ret.exception ?: Exception(ret.msg)
@@ -206,7 +307,7 @@ fun RemoteListScreen(
                         if(noExist){  //remote在git仓库不存在，但同时悄悄删除了db中的remote
                             Msg.requireShowLongDuration(ret.msg)
                         }else{ //成功
-                            Msg.requireShow(appContext.getString(R.string.success))
+                            Msg.requireShow(activityContext.getString(R.string.success))
                         }
                     }
 
@@ -223,9 +324,8 @@ fun RemoteListScreen(
         }
     }
 
-    val showViewDialog = StateUtil.getRememberSaveableState(initValue = false)
-    val viewDialogText = StateUtil.getRememberSaveableState(initValue = "")
-    val clipboardManager = LocalClipboardManager.current
+    val showViewDialog = rememberSaveable { mutableStateOf(false)}
+    val viewDialogText = rememberSaveable { mutableStateOf("")}
     if(showViewDialog.value) {
         CopyableDialog(
             title = stringResource(id = R.string.remote_info),
@@ -236,13 +336,14 @@ fun RemoteListScreen(
         ) { //复制到剪贴板
             showViewDialog.value=false
             clipboardManager.setText(AnnotatedString(viewDialogText.value))
-            Msg.requireShow(appContext.getString(R.string.copied))
+            Msg.requireShow(activityContext.getString(R.string.copied))
 
         }
     }
 
     if(showSetBranchDialog.value) {
         SetBranchForRemoteDialog(
+            stateKeyTag = stateKeyTag,
             curRepo = curRepo.value,
             remoteName = curObjInState.value.remoteName,
             isAllInitValue = curObjInState.value.branchMode == Cons.dbRemote_Fetch_BranchMode_All,
@@ -258,9 +359,8 @@ fun RemoteListScreen(
                             config = config,
                             fetch_BranchMode = Cons.dbRemote_Fetch_BranchMode_All,
                             remote = remoteName,
-                            branchOrBranches = "*",
-                            branchListSeparator = Cons.stringListSeparator,
-                            appContext = appContext
+                            branchOrBranches = Cons.gitFetchAllBranchSign,
+                            appContext = activityContext
                             )
                     }else {
                         Libgit2Helper.setRemoteFetchRefSpecToGitConfig(
@@ -268,8 +368,7 @@ fun RemoteListScreen(
                             fetch_BranchMode = Cons.dbRemote_Fetch_BranchMode_CustomBranches,
                             remote = remoteName,
                             branchOrBranches = branchCsvStr,
-                            branchListSeparator = Cons.stringListSeparator,
-                            appContext = appContext
+                            appContext = activityContext
                         )
 
                     }
@@ -277,7 +376,7 @@ fun RemoteListScreen(
                     if(ret.hasError()) {
                         Msg.requireShowLongDuration(ret.msg)
                     }else{
-                        Msg.requireShow(appContext.getString(R.string.saved))
+                        Msg.requireShow(activityContext.getString(R.string.saved))
                     }
 
                     changeStateTriggerRefreshPage(needRefresh)
@@ -289,45 +388,18 @@ fun RemoteListScreen(
     }
 
     if(showFetchAllDialog.value) {
-        ConfirmDialog(
-            title = stringResource(id = R.string.fetch_all),
-            text = stringResource(id = R.string.fetch_all_are_u_sure),
-            onCancel = { showFetchAllDialog.value = false }
-        ) {
-            showFetchAllDialog.value=false
-            doJobThenOffLoading(loadingOn, loadingOff, appContext.getString(R.string.fetching_all)) {
-                try {
-                    if(list.value.isNotEmpty()) {  //remote列表如果是空就不用fetch all了
-                        //remote名和凭据组合的列表
-                        val remoteCredentialList = Libgit2Helper.genRemoteCredentialPairList(list.value, AppModel.singleInstanceHolder.dbContainer.credentialRepository,
-                            requireFetchCredential = true, requirePushCredential = false)
-
-                        Repository.open(curRepo.value.fullSavePath).use { repo ->
-                            //fetch all
-                            Libgit2Helper.fetchRemoteListForRepo(repo, remoteCredentialList, curRepo.value)
-                            //显示成功通知
-                            Msg.requireShow(appContext.getString(R.string.fetch_all_success))
-                        }
-                    }else {  // remotes列表为空，无需执行操作
-                        Msg.requireShowLongDuration(appContext.getString(R.string.err_remote_list_is_empty))
-                    }
-
-                }catch (e:Exception){
-                    val errMsg = "fetch all err:"+e.localizedMessage
-                    Msg.requireShowLongDuration(errMsg)
-                    createAndInsertError(curRepo.value.id, errMsg)
-
-                    MyLog.e(TAG, "fetch all err:"+e.stackTraceToString())
-
-                }finally {
-                    changeStateTriggerRefreshPage(needRefresh)
-                }
-
-
-            }
-
-        }
+        FetchRemotesDialog(
+            title = stringResource(R.string.fetch_all),
+            text = stringResource(R.string.fetch_all_are_u_sure),
+            remoteList = list.value,
+            closeDialog = { showFetchAllDialog.value = false },
+            curRepo = curRepo.value,
+            loadingOn = loadingOn,
+            loadingOff = loadingOff,
+            refreshPage = { changeStateTriggerRefreshPage(needRefresh) },
+        )
     }
+
     if(showSetUrlDialog.value) {
         ConfirmDialog(
             okBtnEnabled = isPushUrl.value || urlTextForSetUrlDialog.value.isNotEmpty(),
@@ -336,15 +408,17 @@ fun RemoteListScreen(
             cancelBtnText = stringResource(id = R.string.cancel),
             requireShowTextCompose = true,
             textCompose = {
-                Column {
-                    Row {
-                        Text(text = stringResource(id = R.string.text_for)+": ")
-                        Text(text = curObjInState.value.remoteName,
-                            fontWeight = FontWeight.ExtraBold,
-                            overflow = TextOverflow.Visible
-                        )
+                ScrollableColumn {
+                    MySelectionContainer {
+                        Row {
+                            Text(text = stringResource(id = R.string.remote)+": ")
+                            Text(text = curObjInState.value.remoteName,
+                                fontWeight = FontWeight.ExtraBold,
+                                overflow = TextOverflow.Visible
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
                     TextField(
                         modifier = Modifier.fillMaxWidth(),
 
@@ -377,7 +451,9 @@ fun RemoteListScreen(
                     )
 
                     if(isPushUrl.value) {
-                        Text(text = stringResource(R.string.leave_it_empty_will_use_url))
+                        MySelectionContainer {
+                            Text(text = stringResource(R.string.leave_it_empty_will_use_url), color=MyStyleKt.TextColor.getHighlighting())
+                        }
                     }
                 }
             },
@@ -395,13 +471,13 @@ fun RemoteListScreen(
             try {
                 //pushUrl可为空，代表使用url；但如果非pushUrl，则强制不可为空
                 if(!isPushUrl.value && newUrl.isBlank()) {
-                    urlErrMsg.value = appContext.getString(R.string.err_url_is_empty)
+                    urlErrMsg.value = activityContext.getString(R.string.err_url_is_empty)
                     return@onOk
                 }
 
                 //新旧url相同，直接不保存就行了，但也不用报错
                 if(newUrl == oldUrl) {
-                    Msg.requireShowLongDuration(appContext.getString(R.string.url_not_changed))
+                    Msg.requireShowLongDuration(activityContext.getString(R.string.url_not_changed))
                     urlErrMsg.value=""
                     showSetUrlDialog.value=false
                     return@onOk
@@ -422,16 +498,16 @@ fun RemoteListScreen(
                             }
 
                             // 更新数据库
-                            val remoteDb = AppModel.singleInstanceHolder.dbContainer.remoteRepository
+                            val remoteDb = AppModel.dbContainer.remoteRepository
                             remoteDb.updatePushUrlById(remoteId, "")  //清空pushUrl
 
                             //操作完成
 
                             //提示成功
-                            Msg.requireShow(appContext.getString(R.string.success))
+                            Msg.requireShow(activityContext.getString(R.string.success))
 
                         }catch (e:Exception) {
-                            val err1 = e.localizedMessage ?: appContext.getString(R.string.unknown_err)
+                            val err1 = e.localizedMessage ?: activityContext.getString(R.string.unknown_err)
                             Msg.requireShowLongDuration(err1)
                             val errWillSave = "$setUrlPrefix for remote '$remoteName' err (delete pushUrl): $err1"
                             createAndInsertError(repoId, errWillSave)
@@ -449,24 +525,6 @@ fun RemoteListScreen(
 
                 //设置非空的url或pushUrl
                 //解析url，捎带检测url是否是有效uri
-                var newUrlUri:URI? = null
-                var newUrlUriStr = ""
-                try {
-                    //准备url，若url格式有问题，会在URI.create()时报错
-                    newUrlUri = URI.create(newUrl)  // 如果url无效，在这会抛异常，数据库和配置文件都不会更新
-                    newUrlUriStr = newUrlUri.toString()
-
-                }catch (uriException:Exception) {
-                    urlErrMsg.value = appContext.getString(R.string.err_invalid_url)
-                    MyLog.e(TAG, "$setUrlPrefix in RemoteList err: parse url err, url=$newUrl, err is: ${uriException.localizedMessage}")
-                    return@onOk
-                }
-
-                //正常来说应该不会进入这个代码块，这里只是以防万一
-                if(newUrlUri==null || newUrlUriStr.isBlank()) {
-                    urlErrMsg.value = appContext.getString(R.string.err_invalid_url)+", errcode=17049037"  //后面的errcode是为了方便我定位错误发生在哪部分代码，我一看到errcode，我就知道“啊，是在这发生的错误”
-                    return@onOk
-                }
 
                 //执行到这里，解析url成功且url不为空
 
@@ -480,31 +538,31 @@ fun RemoteListScreen(
                         //先更新配置文件，然后再更新db，因为在这里db相当于缓存，而配置文件是正式数据，应确保正式数据成功更新后再更新缓存
                         Repository.open(repoFullPath).use { repo ->
                             if(isPushUrl.value){
-                                Remote.setPushurl(repo, remoteName, newUrlUri)
+                                Remote.setPushurl(repo, remoteName, newUrl)
                             }else{
-                                Remote.setUrl(repo, remoteName, newUrlUri)
+                                Remote.setUrl(repo, remoteName, newUrl)
                             }
                         }
 
                         //如果上面配置文件的代码抛异常，会抛异常，也就不会更新数据库了
 
                         // 更新数据库
-                        val remoteDb = AppModel.singleInstanceHolder.dbContainer.remoteRepository
+                        val remoteDb = AppModel.dbContainer.remoteRepository
                         if(isPushUrl.value){
-                            remoteDb.updatePushUrlById(remoteId, newUrlUriStr)
+                            remoteDb.updatePushUrlById(remoteId, newUrl)
                         }else {
                             //这里不用开事务，因为里面就一个dao操作而那个dao已经开了事务，只有多个db操作弄到一起时才有必要在外部开事务
                             //为了和配置文件一致，数据库保存的是 用户输入转成的url再转成的uri再转成的字符串，可能包含需编码的内容时这么转有意义？
-                            remoteDb.updateRemoteUrlById(remoteId, newUrlUriStr, requireTransaction=false)
+                            remoteDb.updateRemoteUrlById(remoteId, newUrl, requireTransaction=false)
                         }
 
                         //操作完成
 
                         //提示成功
-                        Msg.requireShow(appContext.getString(R.string.success))
+                        Msg.requireShow(activityContext.getString(R.string.success))
 
                     }catch (e:Exception) {
-                        val err1 = (e.localizedMessage ?: appContext.getString(R.string.unknown_err))
+                        val err1 = (e.localizedMessage ?: activityContext.getString(R.string.unknown_err))
                         Msg.requireShowLongDuration(err1)
                         val errWillSave = "$setUrlPrefix for remote '$remoteName' err: $err1"
                         createAndInsertError(repoId, errWillSave)
@@ -515,7 +573,7 @@ fun RemoteListScreen(
                 }
             }catch (e:Exception) {
                 MyLog.e(TAG, "$setUrlPrefix in RemoteList err: remoteName=${remoteName}, newUrl=$newUrl, oldUrl=$oldUrl, err is:\n${e.stackTraceToString()}")
-                val err1 = e.localizedMessage ?: appContext.getString(R.string.unknown_err)
+                val err1 = e.localizedMessage ?: activityContext.getString(R.string.unknown_err)
 
                 //如果弹窗没关，在弹窗显示错误，如果关了，记到数据库
                 if(showSetUrlDialog.value) {  //弹窗开着，直接在弹窗显示错误信息
@@ -558,7 +616,7 @@ fun RemoteListScreen(
                 //fetch成功返回true，否则返回false
                 val remoteName = remoteNameParam
                 if (remoteName.isNullOrBlank()) {
-                    throw RuntimeException(appContext.getString(R.string.remote_name_is_invalid))
+                    throw RuntimeException(activityContext.getString(R.string.remote_name_is_invalid))
                 }
 
                 //执行到这，upstream的remote有效，执行fetch
@@ -575,10 +633,10 @@ fun RemoteListScreen(
             }
 
             // 更新修改workstatus的时间，只更新时间就行，状态会在查询repo时更新
-            val repoDb = AppModel.singleInstanceHolder.dbContainer.repoRepository
+            val repoDb = AppModel.dbContainer.repoRepository
             repoDb.updateLastUpdateTime(curRepo.id, getSecFromTime())
 
-            Msg.requireShow(appContext.getString(R.string.success))
+            Msg.requireShow(activityContext.getString(R.string.success))
 
             fetchSuccessRetVal = true
         } catch (e: Exception) {
@@ -587,8 +645,8 @@ fun RemoteListScreen(
             //保存数据库(给用户看的，消息尽量简单些)
             showErrAndSaveLog(
                 TAG,
-                "#doFetch() from RemoteList Page err:" + e.stackTraceToString(),
-                "fetch err:" + e.localizedMessage,
+                "#doFetch() from RemoteList Page err: " + e.stackTraceToString(),
+                "fetch err: " + e.localizedMessage,
                 Msg.requireShowLongDuration,
                 curRepo.id
             )
@@ -599,24 +657,37 @@ fun RemoteListScreen(
         return@doFetch fetchSuccessRetVal
     }
 
-    val filterKeyword = StateUtil.getCustomSaveableState(
+    val filterResultNeedRefresh = rememberSaveable { mutableStateOf("") }
+
+    val filterKeyword = mutableCustomStateOf(
         keyTag = stateKeyTag,
         keyName = "filterKeyword",
         initValue = TextFieldValue("")
     )
-    val filterModeOn = StateUtil.getRememberSaveableState(initValue = false)
+    val filterModeOn = rememberSaveable { mutableStateOf(false)}
+
+    // start: search states
+    val lastKeyword = rememberSaveable { mutableStateOf("") }
+    val token = rememberSaveable { mutableStateOf("") }
+    val searching = rememberSaveable { mutableStateOf(false) }
+    val resetSearchVars = {
+        searching.value = false
+        token.value = ""
+        lastKeyword.value = ""
+    }
+    // end: search states
 
 
     // 向下滚动监听，开始
-    val scrollingDown = remember { mutableStateOf(false) }
+    val pageScrolled = rememberSaveable { mutableStateOf(settings.showNaviButtons) }
 
-    val filterListState = StateUtil.getCustomSaveableState(
-        keyTag = stateKeyTag,
-        keyName = "filterListState"
-    ) {
-        LazyListState(0,0)
-    }
-    val enableFilterState = StateUtil.getRememberSaveableState(initValue = false)
+    val filterListState = rememberLazyListState()
+//    val filterListState = mutableCustomStateOf(
+//        keyTag = stateKeyTag,
+//        keyName = "filterListState",
+//        LazyListState(0,0)
+//    )
+    val enableFilterState = rememberSaveable { mutableStateOf(false)}
 //    val firstVisible = remember { derivedStateOf { if(enableFilterState.value) filterListState.value.firstVisibleItemIndex else lazyListState.firstVisibleItemIndex } }
 //    ScrollListener(
 //        nowAt = firstVisible.value,
@@ -624,44 +695,64 @@ fun RemoteListScreen(
 //    ) { // onScrollDown
 //        scrollingDown.value = true
 //    }
-    @SuppressLint("UnrememberedMutableState")
-    val lastAt = mutableIntStateOf(0)
-    scrollingDown.value = remember {
-        derivedStateOf {
-            val nowAt = if(enableFilterState.value) {
-                filterListState.value.firstVisibleItemIndex
-            } else {
-                lazyListState.firstVisibleItemIndex
-            }
-            val scrolldown = nowAt > lastAt.intValue
-            lastAt.intValue = nowAt
-            scrolldown
-        }
-    }.value
+//
+//    val lastAt = remember { mutableIntStateOf(0) }
+//    val lastIsScrollDown = remember { mutableStateOf(false) }
+//    val forUpdateScrollState = remember {
+//        derivedStateOf {
+//            val nowAt = if(enableFilterState.value) {
+//                filterListState.firstVisibleItemIndex
+//            } else {
+//                lazyListState.firstVisibleItemIndex
+//            }
+//            val scrolledDown = nowAt > lastAt.intValue  // scroll down
+////            val scrolledUp = nowAt < lastAt.intValue
+//
+//            val scrolled = nowAt != lastAt.intValue  // scrolled
+//            lastAt.intValue = nowAt
+//
+//            // only update state when this scroll down and last is not scroll down, or this is scroll up and last is not scroll up
+//            if(scrolled && ((lastIsScrollDown.value && !scrolledDown) || (!lastIsScrollDown.value && scrolledDown))) {
+//                pageScrolled.value = true
+//            }
+//
+//            lastIsScrollDown.value = scrolledDown
+//        }
+//    }.value
     // 向下滚动监听，结束
+
+    val showTitleInfoDialog = rememberSaveable { mutableStateOf(false)}
+    if(showTitleInfoDialog.value) {
+        RepoInfoDialog(curRepo.value, showTitleInfoDialog)
+    }
+
+    val filterLastPosition = rememberSaveable { mutableStateOf(0) }
+    val lastPosition = rememberSaveable { mutableStateOf(0) }
+
+    BackHandler {
+        if(filterModeOn.value) {
+            filterModeOn.value = false
+            resetSearchVars()
+        } else {
+            naviUp()
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(homeTopBarScrollBehavior.nestedScrollConnection),
         topBar = {
-            //TODO 这个东西也要根据选择哪个抽屉菜单条目而变化
-            //TODO 要能在向上滚动时，隐藏这个topbar，向下滚动时，显示出来
-            //TODO Editor时，在右隐藏侧栏显示文件名怎么样？
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
+                colors = MyStyleKt.TopBar.getColors(),
                 title = {
                     if(filterModeOn.value) {
-                        FilterTextField(
-                            filterKeyword,
-                        )
+                        FilterTextField(filterKeyWord = filterKeyword, loading = searching.value)
                     }else {
                         val repoName = curRepo.value.repoName
-                        Column (modifier = Modifier.combinedClickable(onDoubleClick = { UIHelper.scrollToItem(scope, lazyListState, 0) }
-                        ) {
+                        Column (modifier = Modifier.combinedClickable(onDoubleClick = {
+                            defaultTitleDoubleClick(scope, lazyListState, lastPosition)
+                        }) {
                             //onClick
-                            Msg.requireShow(repoName)
+                            showTitleInfoDialog.value = true
                         }){
                             Text(
                                 text= stringResource(R.string.remotes),
@@ -686,7 +777,9 @@ fun RemoteListScreen(
                             icon = Icons.Filled.Close,
                             iconContentDesc = stringResource(R.string.close),
 
-                            ) {
+                        ) {
+                            resetSearchVars()
+
                             filterModeOn.value = false
                         }
                     }else{
@@ -701,7 +794,6 @@ fun RemoteListScreen(
 
                     }
                 },
-                //TODO IconButton不支持长按显示提示信息，我想让用户长按，手机震动，在按钮附近半透明显示按钮功能，就像安卓4.x那样
                 actions = {
                     if(!filterModeOn.value) {
                         LongPressAbleIconBtn(
@@ -726,7 +818,7 @@ fun RemoteListScreen(
 
                         LongPressAbleIconBtn(
                             tooltipText = stringResource(R.string.fetch_all),
-                            icon =  Icons.Filled.CloudDownload,
+                            icon =  Icons.Filled.Downloading,
                             iconContentDesc = stringResource(R.string.fetch_all),
 
                         ) {
@@ -750,18 +842,18 @@ fun RemoteListScreen(
             )
         },
         floatingActionButton = {
-            if(scrollingDown.value) {
-                //向下滑动时显示go to top按钮
-                SmallFab(
-                    modifier = MyStyleKt.Fab.getFabModifier(),
-                    icon = Icons.Filled.VerticalAlignTop, iconDesc = stringResource(id = R.string.go_to_top)
-                ) {
-                    if(enableFilterState.value) {
-                        UIHelper.scrollToItem(scope, filterListState.value, 0)
-                    }else {
-                        UIHelper.scrollToItem(scope, lazyListState, 0)
-                    }
-                }
+            if(pageScrolled.value) {
+
+                GoToTopAndGoToBottomFab(
+                    filterModeOn = enableFilterState.value,
+                    scope = scope,
+                    filterListState = filterListState,
+                    listState = lazyListState,
+                    filterListLastPosition = filterLastPosition,
+                    listLastPosition = lastPosition,
+                    showFab = pageScrolled
+                )
+
             }
         }
     ) { contentPadding ->
@@ -770,9 +862,9 @@ fun RemoteListScreen(
             BottomSheet(showBottomSheet, sheetState, curObjInState.value.remoteName) {
                 BottomSheetItem(sheetState=sheetState, showBottomSheet=showBottomSheet, text= stringResource(R.string.fetch)){
                     //e.g. "fetching origin..."
-                    val fetchingxxxLoadingText = appContext.getString(R.string.fetching_no_dots)+" "+curObjInState.value.remoteName+"..."
+                    val fetchingRemoteLoadingText = replaceStringResList(activityContext.getString(R.string.fetching_remotename), listOf(curObjInState.value.remoteName))
                     //执行fetch
-                    doJobThenOffLoading(loadingOn, loadingOff, fetchingxxxLoadingText) {
+                    doJobThenOffLoading(loadingOn, loadingOff, fetchingRemoteLoadingText) {
                         doFetch(curObjInState.value.remoteName, curRepo.value)
                         //刷新页面
                         changeStateTriggerRefreshPage(needRefresh)
@@ -805,7 +897,7 @@ fun RemoteListScreen(
                     BottomSheetItem(sheetState=sheetState, showBottomSheet=showBottomSheet, text=stringResource(R.string.set_push_url)){
                         //设置pushurl
                         //设置回显上次的url
-                        val oldUrl = curObjInState.value.pushUrl
+                        val oldUrl = if(curObjInState.value.pushUrlTrackFetchUrl) "" else curObjInState.value.pushUrl
                         urlTextForSetUrlDialog.value = oldUrl  //用来存储用户输入的url的状态变量
                         oldUrlTextForSetUrlDialog.value = oldUrl //保存旧值，在这设置后就不会更新了，这个变量用来在保存前检查新旧url是否相同，若相同就不更新了
                         isPushUrl.value = true
@@ -821,16 +913,23 @@ fun RemoteListScreen(
                         //curObjInState当初应命名为“LongPressedItem”之类的名字，现在这我经常分不清哪个状态变量存储长按条目
                         navController.navigate(Cons.nav_CredentialManagerScreen+"/${curObjInState.value.remoteId}")
                     }
+
+                    BottomSheetItem(sheetState=sheetState, showBottomSheet=showBottomSheet, text=stringResource(R.string.rename)){
+                        oldName.value = curObjInState.value.remoteName
+                        newName.value = ""
+                        showRenameDialog.value = true
+                    }
                 }
 
-                BottomSheetItem(sheetState=sheetState, showBottomSheet=showBottomSheet, text=stringResource(R.string.unlink_credential)){
-                    //解除关联凭据
-                    showUnlinkCredentialDialog.value=true
-                }
+//              //20241130: 改成前往凭据关联页面绑定None实现解绑凭据了
+//                BottomSheetItem(sheetState=sheetState, showBottomSheet=showBottomSheet, text=stringResource(R.string.unlink_credential)){
+//                    //解除关联凭据
+//                    showUnlinkCredentialDialog.value=true
+//                }
 
                 //添加remote和删除remote配套，都是pro feature，不能只开放其中一个，不然会有问题，想像一下，你就一个remote，而你删了它，但没法创建，是不是很不合理？所以删除和添加应该配套，一个是pro feature另一个也必须是
                 if(proFeatureEnabled(createRemoteTestPassed)) {
-                    BottomSheetItem(sheetState=sheetState, showBottomSheet=showBottomSheet, text=stringResource(R.string.delete), textColor = MyStyleKt.TextColor.danger){
+                    BottomSheetItem(sheetState=sheetState, showBottomSheet=showBottomSheet, text=stringResource(R.string.delete), textColor = MyStyleKt.TextColor.danger()){
                         showDelRemoteDialog.value=true
                     }
                 }
@@ -838,98 +937,131 @@ fun RemoteListScreen(
             }
         }
 
-        if(isLoading.value) {
-            LoadingText(contentPadding = contentPadding, text = loadingText.value)
-        }else {
-            //根据关键字过滤条目
-            val k = filterKeyword.value.text.lowercase()  //关键字
-            val enableFilter = filterModeOn.value && k.isNotEmpty()
-            val list = if(enableFilter){
-                list.value.filter {
-                    it.remoteName.lowercase().contains(k)
-                            || it.remoteUrl.lowercase().contains(k)
-                            || it.pushUrl.lowercase().contains(k)
-                            || it.credentialName?.lowercase()?.contains(k) == true
-                            || it.pushCredentialName?.lowercase()?.contains(k) == true
-                            || it.branchListForFetch.toString().lowercase().contains(k)
+        PullToRefreshBox(
+            contentPadding = contentPadding,
+            onRefresh = { changeStateTriggerRefreshPage(needRefresh) }
+        ) {
+
+            if(isLoading.value || list.value.isEmpty()) {
+                FullScreenScrollableColumn(contentPadding) {
+                    if(isLoading.value) {
+                        Text(text = loadingText.value)
+                    }else {
+                        Row {
+                            Text(text = stringResource(R.string.item_list_is_empty))
+                        }
+
+                        CenterPaddingRow {
+                            LongPressAbleIconBtn(
+                                icon = Icons.Filled.Add,
+                                tooltipText =  stringResource(R.string.create),
+                            ) {
+                                showCreateRemoteDialog.value = true
+                            }
+                        }
+                    }
                 }
             }else {
-                list.value
-            }
-            val listState = if(enableFilter) StateUtil.getRememberLazyListState() else lazyListState
-            if(enableFilter) {  //更新filter列表state
-                filterListState.value = listState
-            }
-            //更新是否启用filter
-            enableFilterState.value = enableFilter
+                //根据关键字过滤条目
+                val keyword = filterKeyword.value.text  //关键字
+                val enableFilter = filterModeActuallyEnabled(filterModeOn.value, keyword)
 
-            MyLazyColumn(
-                contentPadding = contentPadding,
-                list = list,
-                listState = listState,
-                requireForEachWithIndex = true,
-                requirePaddingAtBottom = true
-            ) {idx,it->
-                //在这个组件里更新了 state curObj，所以长按后直接用curObj就能获取到当前对象了
-                RemoteItem(showBottomSheet,curObjInState,idx,it){ //onClick
-                    //生成要显示的字符串
-                    val sb = StringBuilder()
-                    sb.append(appContext.getString(R.string.name)+": "+it.remoteName)
-                    sb.appendLine()
-                    sb.appendLine()
-                    sb.append(appContext.getString(R.string.url)+": "+it.remoteUrl)
-                    sb.appendLine()
-                    sb.appendLine()
-                    sb.append(appContext.getString(R.string.push_url)+": "+(it.pushUrl.ifEmpty { it.remoteUrl }))
-                    sb.appendLine()
-                    sb.appendLine()
-                    sb.append(appContext.getString(R.string.fetch_credential)+": "+(it.credentialName?:""))
-                    sb.appendLine()
-                    sb.appendLine()
-                    sb.append(appContext.getString(R.string.push_credential)+": "+(it.pushCredentialName?:""))
-                    sb.appendLine()
-                    sb.appendLine()
-                    sb.append(appContext.getString(R.string.branch_mode)+": "+(if(it.branchMode == Cons.dbRemote_Fetch_BranchMode_All) appContext.getString(R.string.all) else appContext.getString(R.string.custom)))
-                    if(it.branchMode != Cons.dbRemote_Fetch_BranchMode_All) {
-                        sb.appendLine()
-                        sb.appendLine()
-                        sb.append((if(it.branchListForFetch.size > 1) appContext.getString(R.string.branches) else appContext.getString(R.string.branch)) +": ${it.branchListForFetch}")
+                val lastNeedRefresh = rememberSaveable { mutableStateOf("") }
+                val list = filterTheList(
+                    needRefresh = filterResultNeedRefresh.value,
+                    lastNeedRefresh = lastNeedRefresh,
+                    enableFilter = enableFilter,
+                    keyword = keyword,
+                    lastKeyword = lastKeyword,
+                    searching = searching,
+                    token = token,
+                    activityContext = activityContext,
+                    filterList = filterList.value,
+                    list = list.value,
+                    resetSearchVars = resetSearchVars,
+                    match = { idx:Int, it: RemoteDto ->
+                        it.remoteName.contains(keyword, ignoreCase = true)
+                                || it.remoteUrl.contains(keyword, ignoreCase = true)
+                                || it.pushUrl.contains(keyword, ignoreCase = true)
+                                || it.credentialName?.contains(keyword, ignoreCase = true) == true
+                                || it.pushCredentialName?.contains(keyword, ignoreCase = true) == true
+                                || it.branchListForFetch.toString().contains(keyword, ignoreCase = true)
                     }
+                )
 
 
-                    //更新状态，然后显示弹窗
-                    viewDialogText.value = sb.toString()
-                    showViewDialog.value = true
+                val listState = if(enableFilter) filterListState else lazyListState
+//            if(enableFilter) {  //更新filter列表state
+//                filterListState.value = listState
+//            }
+                //更新是否启用filter
+                enableFilterState.value = enableFilter
+
+                MyLazyColumn(
+                    contentPadding = contentPadding,
+                    list = list,
+                    listState = listState,
+                    requireForEachWithIndex = true,
+                    requirePaddingAtBottom = true
+                ) {idx,it->
+                    //在这个组件里更新了 state curObj，所以长按后直接用curObj就能获取到当前对象了
+                    RemoteItem(showBottomSheet,curObjInState,idx,it, lastClickedItemKey){ //onClick
+                        //生成要显示的字符串
+                        val sb = StringBuilder()
+                        sb.append(activityContext.getString(R.string.name)+": "+it.remoteName)
+                        sb.appendLine()
+                        sb.appendLine()
+                        sb.append(activityContext.getString(R.string.url)+": "+it.remoteUrl)
+                        sb.appendLine()
+                        sb.appendLine()
+
+//                    sb.append(appContext.getString(R.string.push_url)+": "+(it.pushUrl.ifEmpty { it.remoteUrl }))  // no more check pushUrl empty need after 20241007
+                        // after 20241007, if need, pushUrl will replaced to fetch url when querying, so reached here, directly show pushUrl is ok
+                        sb.append(activityContext.getString(R.string.push_url)+": "+it.pushUrl)
+
+                        sb.appendLine()
+                        sb.appendLine()
+                        sb.append(activityContext.getString(R.string.fetch_credential)+": "+it.getLinkedFetchCredentialName())
+                        sb.appendLine()
+                        sb.appendLine()
+                        sb.append(activityContext.getString(R.string.push_credential)+": "+it.getLinkedPushCredentialName())
+                        sb.appendLine()
+                        sb.appendLine()
+                        sb.append(activityContext.getString(R.string.branch_mode)+": "+(if(it.branchMode == Cons.dbRemote_Fetch_BranchMode_All) activityContext.getString(R.string.all) else activityContext.getString(R.string.custom)))
+                        if(it.branchMode != Cons.dbRemote_Fetch_BranchMode_All) {
+                            sb.appendLine()
+                            sb.appendLine()
+                            sb.append((if(it.branchListForFetch.size > 1) activityContext.getString(R.string.branches) else activityContext.getString(R.string.branch)) +": ${it.branchListForFetch}")
+                        }
+
+
+                        //更新状态，然后显示弹窗
+                        viewDialogText.value = sb.toString()
+                        showViewDialog.value = true
+                    }
+                    MyHorizontalDivider()
                 }
-                HorizontalDivider()
+
             }
-
         }
 
-    }
-
-    BackHandler {
-        if(filterModeOn.value) {
-            filterModeOn.value = false
-        } else {
-            naviUp()
-        }
     }
 
     //compose创建时的副作用
     LaunchedEffect(needRefresh.value) {
         try {
             if(repoId.isNotBlank()) {
-                doJobThenOffLoading {
-                    list.value.clear()
-                    val repoDb = AppModel.singleInstanceHolder.dbContainer.repoRepository
+                doJobThenOffLoading(loadingOn, loadingOff, activityContext.getString(R.string.loading)) {
+                    val repoDb = AppModel.dbContainer.repoRepository
                     val repoFromDb = repoDb.getById(repoId)
-                    if(repoFromDb==null) {
+                    if(repoFromDb == null) {
+                        Msg.requireShowLongDuration(activityContext.getString(R.string.repo_id_invalid))
                         return@doJobThenOffLoading
                     }
+
                     curRepo.value = repoFromDb
 
-                    val remoteDb = AppModel.singleInstanceHolder.dbContainer.remoteRepository
+                    val remoteDb = AppModel.dbContainer.remoteRepository
                     val listFromDb = remoteDb.getRemoteDtoListByRepoId(repoId)
 
                     //改成在数据库查询函数里更新了
@@ -937,12 +1069,15 @@ fun RemoteListScreen(
 //                        updateRemoteDtoList(repo, listFromDb)
 //                    }
 
+                    list.value.clear()
                     list.value.addAll(listFromDb)
+
+                    triggerReFilter(filterResultNeedRefresh)
                 }
 
             }
         } catch (e: Exception) {
-            MyLog.e(TAG, "$TAG#LaunchedEffect() err:"+e.stackTraceToString())
+            MyLog.e(TAG, "$TAG#LaunchedEffect() err: "+e.stackTraceToString())
         }
     }
 

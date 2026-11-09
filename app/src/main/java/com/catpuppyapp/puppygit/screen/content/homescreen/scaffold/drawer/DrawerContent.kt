@@ -12,6 +12,7 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -32,26 +33,28 @@ fun drawerContent(
     drawTextList: List<String>,
     drawIdList: List<Int>,
     drawIconList: List<ImageVector>,
-    refreshPageList:List<()->Unit>,
+    drawerItemOnClick:List<()->Unit>,
     showExit:Boolean, // 是否在末尾显示退出按钮
+    filesPageKeepFilterResultOnce:MutableState<Boolean>,
+
 ): @Composable() (ColumnScope.() -> Unit) =
     {
         var drawTextList = drawTextList
         var drawIdList = drawIdList
         var drawIconList = drawIconList
-        var refreshPageList = refreshPageList
+        var drawerItemOnClick = drawerItemOnClick
 
         //添加退出按钮
         if(showExit) {
             drawTextList = drawTextList.toMutableList()
             drawIdList = drawIdList.toMutableList()
             drawIconList = drawIconList.toMutableList()
-            refreshPageList = refreshPageList.toMutableList()
+            drawerItemOnClick = drawerItemOnClick.toMutableList()
 
             (drawTextList as MutableList).add(stringResource(R.string.exit))
             (drawIdList as MutableList).add(Cons.selectedItem_Exit)
             (drawIconList as MutableList).add(Icons.AutoMirrored.Filled.ExitToApp)
-            (refreshPageList as MutableList).add(AppModel.singleInstanceHolder.exitApp)
+            (drawerItemOnClick as MutableList).add(AppModel.exitApp)
         }
 
         val m = Modifier.padding(5.dp)
@@ -62,7 +65,7 @@ fun drawerContent(
                 modifier = m,
 
                 //设置选中条目背景颜色
-                colors = NavigationDrawerItemDefaults.colors(selectedContainerColor = MaterialTheme.colorScheme.inversePrimary),
+                colors = NavigationDrawerItemDefaults.colors(selectedContainerColor = MaterialTheme.colorScheme.primaryContainer),
                 icon = {
                     Icon(imageVector = drawIconList[index], contentDescription = text)
                 },
@@ -70,7 +73,12 @@ fun drawerContent(
                 label = { Text(text) },
                 selected = id == currentHomeScreen.intValue,
                 onClick = {
-                    refreshPageList[index]()
+                    //如果是从非Files页面点击Files，则不会触发过滤结果的刷新（隐藏feature：如果已经在Files页面，重新点击Files则会触发刷新）
+                    if(Cons.selectedItem_Files.let { id == it && currentHomeScreen.intValue != it }) {
+                        filesPageKeepFilterResultOnce.value = true
+                    }
+
+                    drawerItemOnClick[index]()
                     currentHomeScreen.intValue = id
                     scope.launch {
                         drawerState.apply {

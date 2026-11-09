@@ -1,0 +1,2 @@
+- ChangeList and FileHistory screens: return from Diff screen will scroll list to make last viewed item visible
+- fix: on Tablet, Repos screen layout may become weired after rotated device

@@ -1,0 +1,1 @@
+- editor support detect line break

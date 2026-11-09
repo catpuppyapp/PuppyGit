@@ -1,0 +1,56 @@
+{
+    "name": "ProGuard",
+    "scopeName": "source.proguard",
+    "fileTypes": ["pro", "proguard"],
+    "patterns": [
+        {
+            "begin": "#",
+            "end": "$",
+            "name": "comment"
+        },
+        {
+            "match": "^-(?:[a-z]+,?)+",
+            "name": "string"
+        },
+        {
+            "match": "-(optimizations|dontwarn|assumenosideeffects)\\>",
+            "name": "keyword.control"
+        },
+        {
+            "match": "-(dontshrink|dontoptimize|dontobfuscate)\\>",
+            "name": "keyword.control"
+        },
+        {
+            "match": "\\*",
+            "name": "keyword"
+        },
+        {
+            "match": "<(fields|methods)>",
+            "name": "keyword"
+        },
+        {
+            "match": "\\b(boolean|char|byte|short|int|long|float|double|void)\\b",
+            "name": "storage.type"
+        },
+        {
+            "match": "\\b(static|transient|final|native)\\b",
+            "name": "storage"
+        },
+        {
+            "match": "\\b(public|protected|private|abstract)\\b",
+            "name": "storage.modifier"
+        },
+        {
+            "match": "\\b(class|enum|extends|implements|interface)\\b",
+            "name": "support.class"
+        },
+        {
+            "match": "@([_$a-zA-Z][_$a-zA-Z0-9]*\\.)*[_$a-zA-Z][_$a-zA-Z0-9]*\\>",
+            "name": "string"
+        },
+        {
+            "match": "<[^\\>]+\\>",
+            "name": "storage.type"
+        }
+    ]
+}

@@ -25,4 +25,4 @@ data class StorageDirEntity(
     var baseFields: BaseFields = BaseFields(
         baseStatus = StorageDirCons.Status.ok
     ),
-    )
+)

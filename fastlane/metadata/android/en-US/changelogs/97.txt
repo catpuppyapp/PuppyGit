@@ -1,0 +1,3 @@
+- support compare left/right commit to local at commits changelist
+- support set commit msg template
+- fix: compare two difference commits mis-considered they are same

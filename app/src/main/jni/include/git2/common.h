@@ -11,7 +11,9 @@
 #include <stdlib.h>
 
 #ifdef __cplusplus
+ /** Start declarations in C mode for C++ compatibility */
 # define GIT_BEGIN_DECL extern "C" {
+ /** End declarations in C mode */
 # define GIT_END_DECL	}
 #else
  /** Start declarations in C mode */
@@ -71,19 +73,19 @@ typedef size_t size_t;
 # define GIT_FORMAT_PRINTF(a,b) /* empty */
 #endif
 
-#if (defined(_WIN32)) && !defined(__CYGWIN__)
-#define GIT_WIN32 1
-#endif
-
 #ifdef __amigaos4__
 #include <netinet/in.h>
 #endif
 
 /**
  * @file git2/common.h
- * @brief Git common platform definitions
+ * @brief Base platform functionality
  * @defgroup git_common Git common platform definitions
  * @ingroup Git
+ *
+ * Common platform functionality including introspecting libgit2
+ * itself - information like how it was built, and the current
+ * running version.
  * @{
  */
 
@@ -94,10 +96,10 @@ GIT_BEGIN_DECL
  * environment variable). A semi-colon ";" is used on Windows and
  * AmigaOS, and a colon ":" for all other systems.
  */
-#if defined(GIT_WIN32) || defined(AMIGA)
-#define GIT_PATH_LIST_SEPARATOR ';'
+#if (defined(_WIN32) && !defined(__CYGWIN__)) || defined(AMIGA)
+# define GIT_PATH_LIST_SEPARATOR ';'
 #else
-#define GIT_PATH_LIST_SEPARATOR ':'
+# define GIT_PATH_LIST_SEPARATOR ':'
 #endif
 
 /**
@@ -128,56 +130,80 @@ GIT_EXTERN(int) git_libgit2_version(int *major, int *minor, int *rev);
 GIT_EXTERN(const char *) git_libgit2_prerelease(void);
 
 /**
- * Combinations of these values describe the features with which libgit2
- * was compiled
+ * Configurable features of libgit2; either optional settings (like
+ * threading), or features that can be enabled by one of a number of
+ * different backend "providers" (like HTTPS, which can be provided by
+ * OpenSSL, mbedTLS, or system libraries).
  */
 typedef enum {
-  /**
-   * If set, libgit2 was built thread-aware and can be safely used from multiple
-   * threads.
-   */
-	GIT_FEATURE_THREADS	= (1 << 0),
-  /**
-   * If set, libgit2 was built with and linked against a TLS implementation.
-   * Custom TLS streams may still be added by the user to support HTTPS
-   * regardless of this.
-   */
-	GIT_FEATURE_HTTPS	= (1 << 1),
-  /**
-   * If set, libgit2 was built with and linked against libssh2. A custom
-   * transport may still be added by the user to support libssh2 regardless of
-   * this.
-   */
-	GIT_FEATURE_SSH		= (1 << 2),
-  /**
-   * If set, libgit2 was built with support for sub-second resolution in file
-   * modification times.
-   */
-	GIT_FEATURE_NSEC	= (1 << 3)
+	/**
+	 * libgit2 is thread-aware and can be used from multiple threads
+	 * (as described in the documentation).
+	 */
+	GIT_FEATURE_THREADS        = (1 << 0),
+
+	/** HTTPS remotes */
+	GIT_FEATURE_HTTPS          = (1 << 1),
+
+	/** SSH remotes */
+	GIT_FEATURE_SSH	           = (1 << 2),
+
+	/** Sub-second resolution in index timestamps */
+	GIT_FEATURE_NSEC           = (1 << 3),
+
+	/** HTTP parsing; always available */
+	GIT_FEATURE_HTTP_PARSER    = (1 << 4),
+
+	/** Regular expression support; always available */
+	GIT_FEATURE_REGEX          = (1 << 5),
+
+	/** Internationalization support for filename translation */
+	GIT_FEATURE_I18N           = (1 << 6),
+
+	/** NTLM support over HTTPS */
+	GIT_FEATURE_AUTH_NTLM      = (1 << 7),
+
+	/** Kerberos (SPNEGO) authentication support over HTTPS */
+	GIT_FEATURE_AUTH_NEGOTIATE = (1 << 8),
+
+	/** zlib support; always available */
+	GIT_FEATURE_COMPRESSION    = (1 << 9),
+
+	/** SHA1 object support; always available */
+	GIT_FEATURE_SHA1           = (1 << 10),
+
+	/** SHA256 object support */
+	GIT_FEATURE_SHA256         = (1 << 11)
 } git_feature_t;
 
 /**
  * Query compile time options for libgit2.
  *
  * @return A combination of GIT_FEATURE_* values.
- *
- * - GIT_FEATURE_THREADS
- *   Libgit2 was compiled with thread support. Note that thread support is
- *   still to be seen as a 'work in progress' - basic object lookups are
- *   believed to be threadsafe, but other operations may not be.
- *
- * - GIT_FEATURE_HTTPS
- *   Libgit2 supports the https:// protocol. This requires the openssl
- *   library to be found when compiling libgit2.
- *
- * - GIT_FEATURE_SSH
- *   Libgit2 supports the SSH protocol for network operations. This requires
- *   the libssh2 library to be found when compiling libgit2
- *
- * - GIT_FEATURE_NSEC
- *   Libgit2 supports the sub-second resolution in file modification times.
  */
 GIT_EXTERN(int) git_libgit2_features(void);
+
+/**
+ * Query the backend details for the compile-time feature in libgit2.
+ *
+ * This will return the "backend" for the feature, which is useful for
+ * things like HTTPS or SSH support, that can have multiple backends
+ * that could be compiled in.
+ *
+ * For example, when libgit2 is compiled with dynamic OpenSSL support,
+ * the feature backend will be `openssl-dynamic`. The feature backend
+ * names reflect the compilation options specified to the build system
+ * (though in all lower case). The backend _may_ be "builtin" for
+ * features that are provided by libgit2 itself.
+ *
+ * If the feature is not supported by the library, this API returns
+ * `NULL`.
+ *
+ * @param feature the feature to query details for
+ * @return the provider details, or NULL if the feature is not supported
+ */
+GIT_EXTERN(const char *) git_libgit2_feature_backend(
+	git_feature_t feature);
 
 /**
  * Global library options
@@ -228,7 +254,12 @@ typedef enum {
 	GIT_OPT_SET_SERVER_CONNECT_TIMEOUT,
 	GIT_OPT_GET_SERVER_CONNECT_TIMEOUT,
 	GIT_OPT_SET_SERVER_TIMEOUT,
-	GIT_OPT_GET_SERVER_TIMEOUT
+	GIT_OPT_GET_SERVER_TIMEOUT,
+	GIT_OPT_SET_USER_AGENT_PRODUCT,
+	GIT_OPT_GET_USER_AGENT_PRODUCT,
+	GIT_OPT_ADD_SSL_X509_CERT,
+	GIT_OPT_GET_PACK_MAX_OBJECT_SIZE,
+	GIT_OPT_SET_PACK_MAX_OBJECT_SIZE
 } git_libgit2_opt_t;
 
 /**
@@ -333,15 +364,52 @@ typedef enum {
  *		> - `path` is the location of a directory holding several
  *		>   certificates, one per file.
  *		>
+ *		> Calling `GIT_OPT_ADD_SSL_X509_CERT` may override the
+ *		> data in `path`.
+ *		>
  * 		> Either parameter may be `NULL`, but not both.
+ *
+ *  * opts(GIT_OPT_ADD_SSL_X509_CERT, const X509 *cert)
+ *
+ *		> Add a raw X509 certificate into the SSL certs store.
+ *		> This certificate is only used by libgit2 invocations
+ *		> during the application lifetime and is not persisted
+ *		> to disk. This certificate cannot be removed from the
+ *		> application once is has been added.
+ *		>
+ *		> - `cert` is the raw X509 cert will be added to cert store.
  *
  *	* opts(GIT_OPT_SET_USER_AGENT, const char *user_agent)
  *
- *		> Set the value of the User-Agent header.  This value will be
- *		> appended to "git/1.0", for compatibility with other git clients.
+ *		> Set the value of the comment section of the User-Agent header.
+ *		> This can be information about your product and its version.
+ *		> By default this is "libgit2" followed by the libgit2 version.
  *		>
- *		> - `user_agent` is the value that will be delivered as the
- *		>   User-Agent header on HTTP requests.
+ *		> This value will be appended to User-Agent _product_, which
+ *		> is typically set to "git/2.0".
+ *		>
+ *		> Set to the empty string ("") to not send any information in the
+ *		> comment section, or set to NULL to restore the default.
+ *
+ *	* opts(GIT_OPT_GET_USER_AGENT, git_buf *out)
+ *
+ *		> Get the value of the User-Agent header.
+ *		> The User-Agent is written to the `out` buffer.
+ *
+ *	* opts(GIT_OPT_SET_USER_AGENT_PRODUCT, const char *user_agent_product)
+ *
+ *		> Set the value of the product portion of the User-Agent header.
+ *		> This defaults to "git/2.0", for compatibility with other git
+ *		> clients. It is recommended to keep this as git/<version> for
+ *		> compatibility with servers that do user-agent detection.
+ *		>
+ *		> Set to the empty string ("") to not send any user-agent string,
+ *		> or set to NULL to restore the default.
+ *
+ *	* opts(GIT_OPT_GET_USER_AGENT_PRODUCT, git_buf *out)
+ *
+ *		> Get the value of the User-Agent product header.
+ *		> The User-Agent product is written to the `out` buffer.
  *
  *	* opts(GIT_OPT_SET_WINDOWS_SHAREMODE, unsigned long value)
  *
@@ -376,11 +444,6 @@ typedef enum {
  *		> Set the SSL ciphers use for HTTPS connections.
  *		>
  *		> - `ciphers` is the list of ciphers that are eanbled.
- *
- *	* opts(GIT_OPT_GET_USER_AGENT, git_buf *out)
- *
- *		> Get the value of the User-Agent header.
- *		> The User-Agent is written to the `out` buffer.
  *
  *	* opts(GIT_OPT_ENABLE_OFS_DELTA, int enabled)
  *
@@ -490,10 +553,9 @@ typedef enum {
  *
  *   opts(GIT_OPT_SET_SERVER_CONNECT_TIMEOUT, int timeout)
  *      > Sets the timeout (in milliseconds) to attempt connections to
- *      > a remote server. This is supported only for HTTP(S) connections
- *      > and is not supported by SSH. Set to 0 to use the system default.
- *      > Note that this may not be able to be configured longer than the
- *      > system default, typically 75 seconds.
+ *      > a remote server. Set to 0 to use the system default. Note that
+ *      > this may not be able to be configured longer than the system
+ *      > default, typically 75 seconds.
  *
  *   opts(GIT_OPT_GET_SERVER_TIMEOUT, int *timeout)
  *      > Gets the timeout (in milliseconds) for reading from and writing
@@ -501,12 +563,19 @@ typedef enum {
  *
  *   opts(GIT_OPT_SET_SERVER_TIMEOUT, int timeout)
  *      > Sets the timeout (in milliseconds) for reading from and writing
- *      > to a remote server. This is supported only for HTTP(S)
- *      > connections and is not supported by SSH. Set to 0 to use the
- *      > system default.
+ *      > to a remote server. Set to 0 to use the system default.
+ *
+ *   opts(GIT_OPT_GET_PACK_MAX_OBJECT_SIZE, size_t *out)
+ *      > Gets the maximum size of a declared packfile object. This can
+ *      > be used to limit maximum memory usage when fetching from a
+ *      > remote.
+ *
+ *   opts(GIT_OPT_SET_PACK_MAX_OBJECT_SIZE, size_t object_size)
+ *      > Set the maximum size of an object that libgit2 will allow in
+ *      > a pack file when downloading a pack file from a remote.
+ *      > The default is 2 GiB.
  *
  * @param option Option key
- * @param ... value to set the option
  * @return 0 on success, <0 on failure
  */
 GIT_EXTERN(int) git_libgit2_opts(int option, ...);

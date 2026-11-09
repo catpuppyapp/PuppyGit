@@ -13,47 +13,86 @@
 
 /**
  * @file git2/config.h
- * @brief Git config management routines
+ * @brief Per-repository, per-user or per-system configuration
  * @defgroup git_config Git config management routines
  * @ingroup Git
+ *
+ * Git configuration affects the operation of the version control
+ * system, and can be specified on a per-repository basis, in user
+ * settings, or at the system level.
  * @{
  */
 GIT_BEGIN_DECL
 
 /**
  * Priority level of a config file.
+ *
  * These priority levels correspond to the natural escalation logic
- * (from higher to lower) when searching for config entries in git.git.
+ * (from higher to lower) when reading or searching for config entries
+ * in git.git. Meaning that for the same key, the configuration in
+ * the local configuration is preferred over the configuration in
+ * the system configuration file.
+ *
+ * Callers can add their own custom configuration, beginning at the
+ * `GIT_CONFIG_LEVEL_APP` level.
+ *
+ * Writes, by default, occur in the highest priority level backend
+ * that is writable. This ordering can be overridden with
+ * `git_config_set_writeorder`.
  *
  * git_config_open_default() and git_repository_config() honor those
  * priority levels as well.
+ *
+ * @see git_config_open_default
+ * @see git_repository_config
  */
 typedef enum {
-	/** System-wide on Windows, for compatibility with portable git */
+	/**
+	 * System-wide on Windows, for compatibility with "Portable Git".
+	 */
 	GIT_CONFIG_LEVEL_PROGRAMDATA = 1,
 
-	/** System-wide configuration file; /etc/gitconfig on Linux systems */
+	/**
+	 * System-wide configuration file; `/etc/gitconfig` on Linux.
+	 */
 	GIT_CONFIG_LEVEL_SYSTEM = 2,
 
-	/** XDG compatible configuration file; typically ~/.config/git/config */
+	/**
+	 * XDG compatible configuration file; typically
+	 * `~/.config/git/config`.
+	 */
 	GIT_CONFIG_LEVEL_XDG = 3,
 
-	/** User-specific configuration file (also called Global configuration
-	 * file); typically ~/.gitconfig
+	/**
+	 * Global configuration file is the user-specific configuration;
+	 * typically `~/.gitconfig`.
 	 */
 	GIT_CONFIG_LEVEL_GLOBAL = 4,
 
-	/** Repository specific configuration file; $WORK_DIR/.git/config on
-	 * non-bare repos
+	/**
+	 * Local configuration, the repository-specific configuration file;
+	 * typically `$GIT_DIR/config`.
 	 */
 	GIT_CONFIG_LEVEL_LOCAL = 5,
 
-	/** Application specific configuration file; freely defined by applications
+	/**
+	 * Worktree-specific configuration; typically
+	 * `$GIT_DIR/config.worktree`.
 	 */
-	GIT_CONFIG_LEVEL_APP = 6,
+	GIT_CONFIG_LEVEL_WORKTREE = 6,
 
-	/** Represents the highest level available config file (i.e. the most
-	 * specific config file available that actually is loaded)
+	/**
+	 * Application-specific configuration file. Callers into libgit2
+	 * can add their own configuration beginning at this level.
+	 */
+	GIT_CONFIG_LEVEL_APP = 7,
+
+	/**
+	 * Not a configuration level; callers can use this value when
+	 * querying configuration levels to specify that they want to
+	 * have data from the highest-level currently configuration.
+	 * This can be used to indicate that callers want the most
+	 * specific config file available that actually is loaded.
 	 */
 	GIT_CONFIG_HIGHEST_LEVEL = -1
 } git_config_level_t;
@@ -62,23 +101,37 @@ typedef enum {
  * An entry in a configuration file
  */
 typedef struct git_config_entry {
-	const char *name; /**< Name of the entry (normalised) */
-	const char *value; /**< String value of the entry */
-	unsigned int include_depth; /**< Depth of includes where this variable was found */
-	git_config_level_t level; /**< Which config file this was found in */
-	void GIT_CALLBACK(free)(struct git_config_entry *entry); /**< Free function for this entry */
-	void *payload; /**< Opaque value for the free function. Do not read or write */
+	/** Name of the configuration entry (normalized). */
+	const char *name;
+
+	/** Literal (string) value of the entry. */
+	const char *value;
+
+	/** The type of backend that this entry exists in (eg, "file"). */
+	const char *backend_type;
+
+	/**
+	 * The path to the origin of this entry. For config files, this is
+	 * the path to the file.
+	 */
+	const char *origin_path;
+
+	/** Depth of includes where this variable was found. */
+	unsigned int include_depth;
+
+	/** Configuration level for the file this was found in. */
+	git_config_level_t level;
 } git_config_entry;
 
 /**
- * Free a config entry
+ * Free a config entry.
  *
  * @param entry The entry to free.
  */
 GIT_EXTERN(void) git_config_entry_free(git_config_entry *entry);
 
 /**
- * A config enumeration callback
+ * A config enumeration callback.
  *
  * @param entry the entry currently being enumerated
  * @param payload a user-specified pointer
@@ -87,7 +140,7 @@ GIT_EXTERN(void) git_config_entry_free(git_config_entry *entry);
 typedef int GIT_CALLBACK(git_config_foreach_cb)(const git_config_entry *entry, void *payload);
 
 /**
- * An opaque structure for a configuration iterator
+ * An opaque structure for a configuration iterator.
  */
 typedef struct git_config_iterator git_config_iterator;
 
@@ -212,9 +265,9 @@ GIT_EXTERN(int) git_config_new(git_config **out);
  * @param cfg the configuration to add the file to
  * @param path path to the configuration file to add
  * @param level the priority level of the backend
- * @param force replace config file at the given priority level
  * @param repo optional repository to allow parsing of
  *  conditional includes
+ * @param force replace config file at the given priority level
  * @return 0 on success, GIT_EEXISTS when adding more than one file
  *  for a given priority level (and force_replace set to 0),
  *  GIT_ENOTFOUND when the file doesn't exist or error code
@@ -275,6 +328,22 @@ GIT_EXTERN(int) git_config_open_level(
  * @return 0 or an error code.
  */
 GIT_EXTERN(int) git_config_open_global(git_config **out, git_config *config);
+
+/**
+ * Set the write order for configuration backends. By default, the
+ * write ordering does not match the read ordering; for example, the
+ * worktree configuration is a high-priority for reading, but is not
+ * written to unless explicitly chosen.
+ *
+ * @param cfg the configuration to change write order of
+ * @param levels the ordering of levels for writing
+ * @param len the length of the levels array
+ * @return 0 or an error code
+ */
+GIT_EXTERN(int) git_config_set_writeorder(
+	git_config *cfg,
+	git_config_level_t *levels,
+	size_t len);
 
 /**
  * Create a snapshot of the configuration
@@ -779,4 +848,5 @@ GIT_EXTERN(int) git_config_lock(git_transaction **tx, git_config *cfg);
 
 /** @} */
 GIT_END_DECL
+
 #endif

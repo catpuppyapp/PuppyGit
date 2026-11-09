@@ -1,16 +1,20 @@
 package com.catpuppyapp.puppygit.git
 
 import com.catpuppyapp.puppygit.constants.Cons
-import com.catpuppyapp.puppygit.utils.getParentPathEndsWithSeparator
+import com.catpuppyapp.puppygit.dto.ItemKey
 import com.catpuppyapp.puppygit.utils.getHumanReadableSizeStr
+import com.catpuppyapp.puppygit.utils.getParentPathEndsWithSeparator
 import com.catpuppyapp.puppygit.utils.mime.MimeType
 import com.catpuppyapp.puppygit.utils.mime.guessFromFileName
 import java.io.File
 
-class StatusTypeEntrySaver {
+class StatusTypeEntrySaver(): ItemKey {
     var repoIdFromDb:String="";
     var fileName:String="";
     var relativePathUnderRepo:String="";  //仓库下的相对路径，包含文件名
+
+    var fileParentPathOfRelativePath:String="";  //文件在仓库下的相对路径的父路径，例如 abc/123.txt，文件名是123.txt，父路径是abc/
+    var repoWorkDirPath:String="";
 
     //modified, newfile,untracked, etc
     var changeType:String?=null;
@@ -21,11 +25,17 @@ class StatusTypeEntrySaver {
     var fileSizeInBytes:Long=0;
     //file or dir or submodule
     var itemType:Int = Cons.gitItemTypeFile;
+    var dirty:Boolean = false  // for submodule, if has uncommited changes, this should set to true
 
     private var mime:MimeType? = null
 
+    private var changeTypeAndSuffix:String? = null
+    private var itemTypeString:String? = null
 //    var subs:MutableList<StatusTypeEntrySaver> = ArrayList();
 
+//    fun isDir():Boolean {
+//        return toFile().isDirectory
+//    }
 
     fun getMime():MimeType {
         if(mime==null) {
@@ -40,17 +50,72 @@ class StatusTypeEntrySaver {
         return getHumanReadableSizeStr(fileSizeInBytes)
     }
 
+    fun getChangeTypeAndSuffix(isDiffToLocal:Boolean):String {
+        if(changeTypeAndSuffix==null) {
+            val item = this
+            changeTypeAndSuffix = ((item.changeType?:"") + (if(item.itemType==Cons.gitItemTypeSubmodule) ", ${Cons.gitItemTypeSubmoduleStr+(if(isDiffToLocal && item.dirty) ", ${Cons.gitSubmoduleDirtyStr}" else "")}" else ""))
+        }
+
+        return changeTypeAndSuffix ?: ""
+    }
+
+    fun getChangeListItemSecondLineText(isDiffToLocal:Boolean):String {
+        return getSizeStr() + ", " + getChangeTypeAndSuffix(isDiffToLocal)
+    }
+
+    fun getItemTypeString():String {
+        if(itemTypeString==null) {
+            itemTypeString = if(itemType == Cons.gitItemTypeDir) {
+                Cons.gitItemTypeDirStr
+            }else if(itemType == Cons.gitItemTypeFile) {
+                Cons.gitItemTypeFileStr
+            }else if(itemType == Cons.gitItemTypeSubmodule) {
+                Cons.gitItemTypeSubmoduleStr
+            }else {
+                ""
+            }
+        }
+
+        return itemTypeString ?: ""
+    }
+
     /**
      * note: path ends with separator /
      */
     fun getParentDirStr():String{
-        return getParentPathEndsWithSeparator(relativePathUnderRepo)
+        return getParentPathEndsWithSeparator(relativePathUnderRepo, trueWhenNoParentReturnEmpty = true)
     }
 
 
     fun toFile(): File {
         return File(canonicalPath)
     }
+
+
+    fun toDiffableItem():DiffableItem {
+        return DiffableItem(
+            repoIdFromDb = repoIdFromDb,
+            relativePath = relativePathUnderRepo,
+            itemType = itemType,
+            changeType = changeType?:"",
+            isChangeListItem = true,
+            isFileHistoryItem = false,
+
+            // FileHistory专有条目
+            entryId = "",
+            // FileHistory专有条目
+            commitId = "",
+
+            sizeInBytes = fileSizeInBytes,
+            shortCommitId = "",
+
+            repoWorkDirPath = repoWorkDirPath,
+            fileName = fileName,
+            fullPath = canonicalPath,
+            fileParentPathOfRelativePath = fileParentPathOfRelativePath,
+        )
+    }
+
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -65,6 +130,7 @@ class StatusTypeEntrySaver {
         if (canonicalPath != other.canonicalPath) return false
         if (fileSizeInBytes != other.fileSizeInBytes) return false
         if (itemType != other.itemType) return false
+        if (dirty != other.dirty) return false
 
         return true
     }
@@ -76,8 +142,27 @@ class StatusTypeEntrySaver {
         result = 31 * result + (changeType?.hashCode() ?: 0)
         result = 31 * result + canonicalPath.hashCode()
         result = 31 * result + fileSizeInBytes.hashCode()
+        result = 31 * result + dirty.hashCode()
         result = 31 * result + itemType
         return result
     }
 
+    override fun getItemKey():String {
+        return generateItemKey(repoIdFromDb, relativePathUnderRepo, changeType, itemType)
+    }
+
+    fun maybeIsFileAndExist():Boolean {
+        return itemType == Cons.gitItemTypeFile || (itemType != Cons.gitItemTypeDir && itemType != Cons.gitItemTypeSubmodule)
+    }
+
+    fun maybeIsDirAndExist():Boolean {
+        return itemType == Cons.gitItemTypeDir || itemType == Cons.gitItemTypeSubmodule || itemType != Cons.gitItemTypeFile
+    }
+
+    companion object {
+
+        fun generateItemKey(repoId:String, relativePath:String, changeType:String?, itemType:Int):String {
+            return repoId+ relativePath+changeType+itemType
+        }
+    }
 }

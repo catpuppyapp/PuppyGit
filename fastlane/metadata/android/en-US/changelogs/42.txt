@@ -1,0 +1,2 @@
+- fixed: after deleting submodule still show it in Submodules Screen
+- fixed: on RepoScreen, repo status not update when do act under filter mode

@@ -2,34 +2,58 @@ package com.catpuppyapp.puppygit.dto
 
 import android.content.Context
 import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.utils.FsUtils
 import com.catpuppyapp.puppygit.utils.MyLog
 import com.catpuppyapp.puppygit.utils.getFileAttributes
 import com.catpuppyapp.puppygit.utils.getFormatTimeFromSec
 import com.catpuppyapp.puppygit.utils.getHumanReadableSizeStr
-import com.catpuppyapp.puppygit.utils.getSystemDefaultTimeZoneOffset
+import com.catpuppyapp.puppygit.utils.getShortTimeIfPossible
 import com.catpuppyapp.puppygit.utils.mime.MimeType
 import com.catpuppyapp.puppygit.utils.mime.guessFromFile
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-private val TAG = "FileItemDto"
+private const val TAG = "FileItemDto"
 
-class FileItemDto {
-    var name=""
-    var createTime=""
-    var createTimeInSec=0L
-    var lastModifiedTime=""
-    var lastModifiedTimeInSec=0L
-    var sizeInBytes =0L
-    var sizeInHumanReadable =""
-    var isFile = false
-    var isDir = false
-    var fullPath = ""
-    var mime=MimeType.TEXT_PLAIN
-    var isHidden = false
+data class FileItemDto (
+    var name:String="",
+    var createTime:String="",
+    var createTimeInSec:Long=0L,
+    var lastModifiedTime:String="",
+    var lastModifiedTimeInSec:Long=0L,
+    var sizeInBytes:Long =0L,
+    var sizeInHumanReadable:String ="",
+    var isFile:Boolean = false,
+    var isDir:Boolean = false,
+    var fullPath:String = "",
+    var mime:MimeType=MimeType.TEXT_PLAIN,
+    var isHidden:Boolean = false,
+    var folderCount:Int=0,
+    var fileCount:Int=0
+) {
+
+    var cachedShortLastModifiedTime:String? = null
+        private set
+        get() = field ?: getShortTimeIfPossible(lastModifiedTime).let { field = it; it }
+
+
+    fun getShortDesc():String {
+        // folder doesn't show size as default,
+        //  cause need recursive calculate,
+        //  may cause expensive cpu overhead
+        return if(isDir) {
+            cachedShortLastModifiedTime ?: ""
+        }else {  // is file
+            "$cachedShortLastModifiedTime, $sizeInHumanReadable"
+        }
+    }
 
     fun toFile():File {
         return File(fullPath)
+    }
+
+    fun equalsForSelected(other:FileItemDto):Boolean {
+        return fullPath == other.fullPath
     }
 
     override fun equals(other: Any?): Boolean {
@@ -74,16 +98,21 @@ class FileItemDto {
         return "FileItemDto(name='$name', createTime='$createTime', createTimeInSec=$createTimeInSec, lastModifiedTime='$lastModifiedTime', lastModifiedTimeInSec=$lastModifiedTimeInSec, sizeInBytes=$sizeInBytes, sizeInHumanReadable='$sizeInHumanReadable', isFile=$isFile, isDir=$isDir, fullPath='$fullPath', mime=$mime, isHidden=$isHidden)"
     }
 
+
     companion object {
+        fun getRootDto():FileItemDto {
+            return FileItemDto(isDir = true, fullPath = FsUtils.rootPath, name = FsUtils.rootName)
+        }
+
 
         //appContext for get string source
-        fun genFileItemDtoByFile(file: File, appContext:Context):FileItemDto {
+        fun genFileItemDtoByFile(file: File, activityContext:Context):FileItemDto {
             val fdto = FileItemDto()
-            updateFileItemDto(fdto, file, appContext)
+            updateFileItemDto(fdto, file, activityContext)
             return fdto
         }
 
-        fun updateFileItemDto(fdto:FileItemDto, file: File, appContext: Context) {
+        fun updateFileItemDto(fdto:FileItemDto, file: File, activityContext: Context) {
             try {
                 fdto.name = file.name
                 fdto.fullPath = file.canonicalPath
@@ -98,7 +127,7 @@ class FileItemDto {
                 fdto.isHidden = file.isHidden
 
                 if(fdto.isDir) {  // 目录，没有大小，暂不递归计算文件大小，先显示："[Folder]"
-                    fdto.sizeInHumanReadable = "["+ appContext.getString(R.string.folder) +"]"  //文件夹大小不是递归显示内部文件总和，所以显示没意义，改成Folder，指示条目是个目录，让界面看着不那么空，就行了
+                    fdto.sizeInHumanReadable = "["+ activityContext.getString(R.string.folder) +"]"  //文件夹大小不是递归显示内部文件总和，所以显示没意义，改成Folder，指示条目是个目录，让界面看着不那么空，就行了
                 }else {  //读文件大小，但不读目录大小
                     fdto.sizeInHumanReadable = getHumanReadableSizeStr(fdto.sizeInBytes)
                 }
@@ -109,8 +138,8 @@ class FileItemDto {
                 fdto.lastModifiedTimeInSec = fileAttributes?.lastModifiedTime()?.to(TimeUnit.SECONDS) ?: 0
 //            println("fdto.lastModifiedTimeInSec == file.lastModified()/1000:"+(fdto.lastModifiedTimeInSec ==(file.lastModified()/1000) ))  // true
                 fdto.createTimeInSec = fileAttributes?.creationTime()?.to(TimeUnit.SECONDS) ?: 0
-                fdto.lastModifiedTime = getFormatTimeFromSec(fdto.lastModifiedTimeInSec, offset = getSystemDefaultTimeZoneOffset())
-                fdto.createTime = getFormatTimeFromSec(fdto.createTimeInSec, offset = getSystemDefaultTimeZoneOffset())
+                fdto.lastModifiedTime = getFormatTimeFromSec(fdto.lastModifiedTimeInSec)
+                fdto.createTime = getFormatTimeFromSec(fdto.createTimeInSec)
 
             }catch (e:Exception) {
                 MyLog.e(TAG, "#updateFileItemDto err: ${e.localizedMessage}")

@@ -78,4 +78,10 @@ interface RemoteRepository {
     suspend fun updateFetchAndPushCredentialIdByRemoteId(remoteId:String, fetchCredentialId:String, pushCredentialId:String)
     suspend fun updateFetchAndPushCredentialIdByCredentialId(oldFetchCredentialId: String, oldPushCredentialId: String, newFetchCredentialId:String, newPushCredentialId:String)
 
+    suspend fun subtractTimeOffset(offsetInSec:Long)
+
+    suspend fun updateAllFetchAndPushCredentialId(fetchCredentialId: String, pushCredentialId: String)
+    suspend fun updateAllFetchCredentialId(fetchCredentialId: String)
+    suspend fun updateAllPushCredentialId(pushCredentialId: String)
+
 }

@@ -1,3 +1,5 @@
+package com.catpuppyapp.puppygit.compose
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SettingsBackupRestore
 import androidx.compose.material.icons.filled.TextDecrease
@@ -6,7 +8,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.ui.res.stringResource
-import com.catpuppyapp.puppygit.compose.LongPressAbleIconBtn
 import com.catpuppyapp.puppygit.play.pro.R
 
 /**

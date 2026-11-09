@@ -78,6 +78,15 @@ interface RemoteDao {
     @Query("update remote set pushCredentialId = :newCredentialId where pushCredentialId = :oldCredentialId")
     suspend fun updatePushCredentialIdByCredentialId(oldCredentialId:String, newCredentialId:String)
 
+    @Query("update remote set credentialId = :fetchCredentialId , pushCredentialId = :pushCredentialId")
+    suspend fun updateAllFetchAndPushCredentialId(fetchCredentialId: String, pushCredentialId: String)
+
+    @Query("update remote set credentialId = :fetchCredentialId")
+    suspend fun updateAllFetchCredentialId(fetchCredentialId: String)
+
+    @Query("update remote set pushCredentialId = :pushCredentialId")
+    suspend fun updateAllPushCredentialId(pushCredentialId: String)
+
     /*
         var remoteId=""
         var remoteName=""
@@ -88,7 +97,7 @@ interface RemoteDao {
         var repoName=""
 
      */
-    @Query("select rem.remoteName as remoteName, rem.id as remoteId, rem.remoteUrl as remoteUrl, rem.credentialId as credentialId, rep.id as repoId, rep.repoName as repoName, cre.name as credentialName, cre.value as credentialVal, cre.pass as credentialPass, cre.type as credentialType, rem.pushUrl as pushUrl, pushCre.id as pushCredentialId, pushCre.name as pushCredentialName, pushCre.value as pushCredentialVal, pushCre.pass as pushCredentialPass, pushCre.type as pushCredentialType from remote as rem left join credential as cre on rem.credentialId=cre.id left join credential as pushCre on rem.pushCredentialId=pushCre.id left join repo as rep on rep.id = rem.repoId where rem.repoId = :repoId order by rem.baseCreateTime DESC")
+    @Query("select rem.remoteName as remoteName, rem.id as remoteId, rem.remoteUrl as remoteUrl, rem.credentialId as credentialId, rep.id as repoId, rep.repoName as repoName, cre.name as credentialName, cre.value as credentialVal, cre.pass as credentialPass, cre.type as credentialType, rem.pushUrl as pushUrl, rem.pushCredentialId as pushCredentialId, pushCre.name as pushCredentialName, pushCre.value as pushCredentialVal, pushCre.pass as pushCredentialPass, pushCre.type as pushCredentialType from remote as rem left join credential as cre on rem.credentialId=cre.id left join credential as pushCre on rem.pushCredentialId=pushCre.id left join repo as rep on rep.id = rem.repoId where rem.repoId = :repoId order by rem.baseCreateTime DESC")
     suspend fun getRemoteDtoListByRepoId(repoId: String):List<RemoteDto>
 
     //这个 or abort 是 onConflict从句，可加可不加，sqlite默认行为其实就是abort
@@ -97,5 +106,9 @@ interface RemoteDao {
 
     @Query("update remote set pushUrl = :url where id = :id")
     suspend fun updatePushUrlById(id:String, url:String)
+
+
+    @Query("UPDATE remote set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)")
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 
 }

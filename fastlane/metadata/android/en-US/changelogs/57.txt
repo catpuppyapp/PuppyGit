@@ -1,0 +1,3 @@
+- support run a http service, it can used for request action by tasker or other apps which can send http request (issue #28)
+- will save master password on the local, no longer input required when launching app (issue #23)
+- support auto pull/push when enter/exit specified apps

@@ -1,0 +1,1 @@
+- fix: colors difficult to distinguish in some cases (issue: #66, thx RokeJulianLockhart)

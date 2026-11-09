@@ -1,0 +1,10 @@
+- support filter repos and recent files by app related path
+- show latest commit msg in repo card
+- support vue syntax highlighting
+- fix sometimes ime state lost in editor
+- Editor: hide save button if current content already saved
+- Editor: fix undo stack push logic incorrect in some cases
+- Editor: support insert closed symbol pair after input opened
+- fix many bugs of Editor
+- support disable ssl verify
+- upgrade target sdk to latest android version

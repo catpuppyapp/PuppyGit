@@ -12,9 +12,14 @@ object RepoStatusUtil {
         //执行操作前设置临时状态
         Cache.set(statusKey, status)
     }
-    fun getRepoStatus(repoId: String):String {
-        return Cache.getByType<String>(getRepoStatusKey(repoId)) ?:""
+
+    /**
+     * @return repo status or null
+     */
+    fun getRepoStatus(repoId: String):String? {
+        return Cache.getByType<String>(getRepoStatusKey(repoId))
     }
+
     fun clearRepoStatus(repoId: String) {
         //执行操作后清除临时状态。（这里不用刷新页面，finally代码里会刷新）
 

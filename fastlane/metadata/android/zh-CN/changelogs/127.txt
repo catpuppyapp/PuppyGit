@@ -1,0 +1,2 @@
+- 支持强制拉取 (issue #135)
+- 升级 libgit2 和 openssl 依赖库

@@ -1,0 +1,9 @@
+translators:
+Russian by github user @triksterr, https://github.com/triksterr, issue: https://github.com/catpuppyapp/PuppyGit/issues/12
+Turkish, @mikropsoft, https://github.com/mikropsoft
+Arabic by https://github.com/Hussain96o
+Bangla by https://github.com/kamilhussen24
+
+---
+how to add a language:
+add strings.xml to `values-replace_to_your_language_code` folder, then check this commit `56c171cd5f436296f0ddcecee2b58d0b21245a5f` and reference it to finish other routines

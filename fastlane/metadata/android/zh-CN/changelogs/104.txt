@@ -1,0 +1,1 @@
+- 修复某些情况颜色难以区分 (issue: #66, thx RokeJulianLockhart)

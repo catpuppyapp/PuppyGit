@@ -63,4 +63,7 @@ interface ErrorDao {
 
     @Query("delete from error WHERE repoId = :repoId")
     fun deleteByRepoId(repoId: String)
+
+    @Query("UPDATE error set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)")
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 }

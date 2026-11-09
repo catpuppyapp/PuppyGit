@@ -21,16 +21,24 @@ import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.data.dao.RepoDao
 import com.catpuppyapp.puppygit.data.entity.RemoteEntity
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
+import com.catpuppyapp.puppygit.etc.Ret
+import com.catpuppyapp.puppygit.git.ImportRepoResult
+import com.catpuppyapp.puppygit.settings.SettingsUtil
 import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.catpuppyapp.puppygit.utils.MyLog
 import com.catpuppyapp.puppygit.utils.dbIntToBool
+import com.catpuppyapp.puppygit.utils.forEachBetter
 import com.catpuppyapp.puppygit.utils.getNowInSecFormatted
 import com.catpuppyapp.puppygit.utils.getSecFromTime
+import com.catpuppyapp.puppygit.utils.getShortUUID
 import com.catpuppyapp.puppygit.utils.isRepoReadyAndPathExist
+import com.catpuppyapp.puppygit.utils.strHasIllegalChars
+import com.github.git24j.core.Repository
 import kotlinx.coroutines.flow.Flow
 import java.io.File
-private val TAG = "RepoRepositoryImpl"
+
+private const val TAG = "RepoRepositoryImpl"
 
 class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
     @Deprecated("不用这个")
@@ -47,6 +55,9 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
             throw RuntimeException("#$funName err: repoName already exists")
 
         }
+
+        // make sure saved is canonical path
+        item.fullSavePath = File(item.fullSavePath).canonicalPath
 
         item.createErrMsg = addTimeStampIfErrMsgIsNotBlank(item.createErrMsg)
         item.latestUncheckedErrMsg = addTimeStampIfErrMsgIsNotBlank(item.latestUncheckedErrMsg)
@@ -77,8 +88,8 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
         val repoFullPath = item.fullSavePath  //其实不用在这保存，但我有点担心下面的函数太傻逼会修改item，所以先存上路径
 
         //删除数据库记录
-        val errDb = AppModel.singleInstanceHolder.dbContainer.errorRepository
-        val remoteDb = AppModel.singleInstanceHolder.dbContainer.remoteRepository
+        val errDb = AppModel.dbContainer.errorRepository
+        val remoteDb = AppModel.dbContainer.remoteRepository
         val act = suspend {
             //其实NotReady的仓库应该没remote和error记录，不过这里不做检测，反正就算执行了也不会误删
             errDb.deleteByRepoId(item.id)  //删除仓库所有错误记录
@@ -87,7 +98,7 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
 
         }
         if(requireTransaction) {
-            AppModel.singleInstanceHolder.dbContainer.db.withTransaction {
+            AppModel.dbContainer.db.withTransaction {
                 act()
     //            throw RuntimeException("测试抛异常是否会“回滚”以及“不执行异常后位于本代码块外的代码”，结论：1会回滚，2不会执行异常后的代码无论是在本代码块内还是外。两者都符合直觉，很好。")
             }
@@ -98,8 +109,9 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
 //        println("抛异常我就不会被执行到了！！")
         //最后，删除仓库文件夹
         if(requireDelFilesOnDisk) {
-            val file = File(repoFullPath)
-            file.deleteRecursively()
+            // 如果能确定目标是submodule，则删除文件后创建空目录
+            //这里不要用parentRepoValid来判断，就用parentRepoId，因为就算id无效（比如父仓库先删除后导入导致id无效），只要id非空，其实就能证明当前仓库至少是其他仓库的submodule，所以应在删除后创建空目录占位置
+            Libgit2Helper.removeRepoFiles(repoFullPath, createEmptyWorkDirAfterRemove = item.parentRepoId.isNotBlank())
         }
 
         //log
@@ -113,6 +125,8 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
             throw RuntimeException("#$funName err: repoName already exists")
 
         }
+
+        item.fullSavePath = File(item.fullSavePath).canonicalPath
 
         //粗略判断，如果错误信息不为空且没追加时间戳（以英文半角括号结尾）则追加时间戳
         item.createErrMsg = addTimeStampIfErrMsgIsNotBlank(item.createErrMsg)
@@ -137,32 +151,109 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
     }
 
     override suspend fun getById(id: String): RepoEntity? {
+        if(id.isEmpty()) {
+            return null
+        }
+
         val repoFromDb = dao.getById(id)?:return null
+
         Libgit2Helper.updateRepoInfo(repoFromDb)
+
         return repoFromDb
     }
 
-    override suspend fun getAll(): List<RepoEntity> {
-        val list = dao.getAll()
-        list.forEach {
-            Libgit2Helper.updateRepoInfo(it)
+    override suspend fun getByName(name: String): RepoEntity? {
+        if(name.isEmpty()) {
+            return null
         }
+
+        val items = dao.getByName(name)
+        return if(items.isEmpty()) {
+            null
+        }else {
+            val repoFromDb = items.get(0)
+            Libgit2Helper.updateRepoInfo(repoFromDb)
+
+            repoFromDb
+        }
+    }
+
+    override suspend fun getByNameOrId(repoNameOrId: String, forceUseIdMatchRepo: Boolean): Ret<RepoEntity?> {
+        if(repoNameOrId.isEmpty()) {
+            return Ret.createError(null, "repoNameOrId is empty")
+        }
+
+        val repo = if (forceUseIdMatchRepo) {
+            val repo = getById(repoNameOrId)
+            if (repo == null) {
+                return Ret.createError(null, "no repo matched the id '$repoNameOrId'")
+            }
+
+            repo
+        } else {
+            // match by name first是因为我感觉多数人应该会记住仓库名，然后调用的时候传参数名而不是id
+            var repo = getByName(repoNameOrId)
+            if (repo == null) {
+                repo = getById(repoNameOrId)
+                if (repo == null) {
+                    return Ret.createError(null, "no repo matched the name or id '$repoNameOrId'")
+                }
+            }
+
+            repo
+        }
+
+        return Ret.createSuccess(repo)
+    }
+
+    override suspend fun getByFullSavePath(fullSavePath: String, onlyReturnReadyRepo:Boolean, requireSyncRepoInfoWithGit:Boolean): RepoEntity? {
+        val repo = dao.getByFullSavePath(fullSavePath)
+        if(repo==null) {
+            return null
+        }
+
+        if(onlyReturnReadyRepo && repoIsNotReady(repo)) {
+            return null
+        }
+
+        if(requireSyncRepoInfoWithGit) {
+            Libgit2Helper.updateRepoInfo(repo)
+        }
+
+        return repo
+    }
+
+    override suspend fun getByIdNoSyncWithGit(id: String): RepoEntity? {
+        return dao.getById(id)
+    }
+
+    override suspend fun getAll(updateRepoInfo:Boolean): List<RepoEntity> {
+        val list = dao.getAll()
+
+        if(updateRepoInfo) {
+            val settings = SettingsUtil.getSettingsSnapshot()
+
+            list.forEachBetter {
+                Libgit2Helper.updateRepoInfo(it, settings = settings)
+            }
+        }
+
         return list
     }
 
     override suspend fun cloneDoneUpdateRepoAndCreateRemote(item: RepoEntity) {
-        val remoteRepository = AppModel.singleInstanceHolder.dbContainer.remoteRepository
-        val db = AppModel.singleInstanceHolder.dbContainer.db
+        val remoteRepository = AppModel.dbContainer.remoteRepository
+        val db = AppModel.dbContainer.db
 
         val remoteForSave = RemoteEntity(
-                                        remoteName = item.pullRemoteName,
-                                        remoteUrl = item.pullRemoteUrl,
-                                        isForPull = Cons.dbCommonTrue,
-                                        isForPush = Cons.dbCommonTrue,
-                                        credentialId = item.credentialIdForClone,
-                                        pushCredentialId = item.credentialIdForClone,
-                                        repoId = item.id,
-                            )
+            remoteName = item.pullRemoteName,
+            remoteUrl = item.pullRemoteUrl,
+            isForPull = Cons.dbCommonTrue,
+            isForPush = Cons.dbCommonTrue,
+            credentialId = item.credentialIdForClone,
+            pushCredentialId = item.credentialIdForClone,
+            repoId = item.id,
+        )
 
         //判断是否是singleBranch模式
         if(dbIntToBool(item.isSingleBranch)) {
@@ -187,25 +278,33 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
     override suspend fun getAReadyRepo(): RepoEntity? {
         val repos = getAll()
         if(repos.isEmpty()) {
-            return null;
+            return null
         }
+
         for(r in repos) {
-            if (isRepoReadyAndPathExist(r)){
+            if (repoIsReady(r)){
                 Libgit2Helper.updateRepoInfo(r)
+
                 return r
             }
         }
+
         return null;
     }
 
-    override suspend fun getReadyRepoList(): List<RepoEntity> {
+    override suspend fun getReadyRepoList(requireSyncRepoInfoWithGit:Boolean): List<RepoEntity> {
         val repoList = mutableListOf<RepoEntity>()
 
         val repos = getAll()
 
+        val settings = SettingsUtil.getSettingsSnapshot()
+
         for(r in repos) {
-            if (isRepoReadyAndPathExist(r)){
-                Libgit2Helper.updateRepoInfo(r)
+            if (repoIsReady(r)) {
+                if(requireSyncRepoInfoWithGit) {
+                    Libgit2Helper.updateRepoInfo(r, settings = settings)
+                }
+
                 repoList.add(r)
             }
         }
@@ -243,7 +342,7 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
         updateErrFieldsById(repoId, Cons.dbCommonFalse, "")
 
         //更新error表
-        val errDb = AppModel.singleInstanceHolder.dbContainer.errorRepository
+        val errDb = AppModel.dbContainer.errorRepository
         //更新error表所有匹配repoId的条目的isChecked状态为true
         errDb.updateIsCheckedByRepoId(repoId, Cons.dbCommonTrue)
     }
@@ -296,15 +395,206 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
         dao.deleteByStorageDirId(storageDirId)
     }
 
+    override suspend fun importRepos(
+        dir: String,
+        isReposParent: Boolean,
+        repoNamePrefix:String,
+        repoNameSuffix:String,
+        parentRepoId:String?,
+        credentialId:String?,
+
+    ): ImportRepoResult {
+        val repos = getAll(updateRepoInfo = false).toMutableList()
+
+        var all = 0  // count of all repos found. btw: this is not all subdirs count under dir, this only mean how many git repos found, it may less than subdirs under dir
+        var success=0  // count of success imported
+        var existed = 0  // count of already exists in db, need not import
+        var failed = 0  // count of import failed (target is a repo, but import err)
+
+
+        if(isReposParent) {  // scan repos under this folder(only scan top level, won't do recursive), in this case may found many repos
+            val subdirs = File(dir).listFiles { it -> it.isDirectory }
+            //has sub directories, try scan folder
+            if(subdirs!=null && subdirs.isNotEmpty()) {
+                subdirs.forEachBetter { sub ->
+                    try {
+                        Repository.open(sub.canonicalPath).use { repo->
+                            all++
+
+                            val repoWorkDirPath = Libgit2Helper.getRepoWorkdirNoEndsWithSlash(repo)
+                            if(repos.indexOfFirst {it.fullSavePath == repoWorkDirPath} != -1) {
+                                existed++
+                            }else {
+                                val importSuccess = importSingleRepo(
+                                    repo = repo,
+                                    repoWorkDirPath = repoWorkDirPath,
+                                    initRepoName = repoNamePrefix + sub.name + repoNameSuffix,
+                                    addRepoToThisListIfSuccess = repos,
+                                    parentRepoId=parentRepoId,
+                                    credentialId=credentialId
+                                )
+
+                                if(importSuccess) {
+                                    success++
+                                }else {
+                                    failed++
+                                }
+                            }
+                        }
+                    }catch (_:Exception) {
+                        // not a repo yet
+                    }
+
+                }
+            }
+        }else {  //try open this folder as repo, in this case most only can be has 1 repo
+            val dirFile = File(dir)
+
+            try {
+                Repository.open(dirFile.canonicalPath).use {repo ->
+                    all=1
+
+                    val repoWorkdirPath = Libgit2Helper.getRepoWorkdirNoEndsWithSlash(repo)
+                    if(repos.indexOfFirst {it.fullSavePath == repoWorkdirPath} != -1) {  // repo already exists
+                        existed = 1
+                    }else { // repo not exist, import
+                        val importSuccess = importSingleRepo(
+                            repo = repo,
+                            repoWorkDirPath = repoWorkdirPath,
+                            initRepoName = repoNamePrefix + dirFile.name + repoNameSuffix,
+                            parentRepoId=parentRepoId,
+                            credentialId = credentialId
+                        )
+                        if(importSuccess) {
+                            success = 1
+                        }else {
+                            failed = 1
+                        }
+                    }
+                }
+            }catch (_:Exception) {
+                // not a repo yet
+            }
+        }
+
+        return ImportRepoResult(all=all, success=success, existed=existed, failed=failed)
+
+    }
+
+    /**
+     * @param addRepoToThisListIfSuccess when possible import more than 1 repo,
+     *  should update all repos list after every imported for avoid add repo redundant,
+     *  in that case, should pass all repos list to this param;
+     *  but if add only 1 repo, needn't this param yet, pass null or ignore is ok
+     */
+    private suspend fun importSingleRepo(
+        repo:Repository,
+        repoWorkDirPath:String,
+        initRepoName:String,
+        addRepoToThisListIfSuccess:MutableList<RepoEntity>?=null,
+        parentRepoId: String?,
+        credentialId:String?,
+
+    ):Boolean {
+        val funName = "importSingleRepo"
+
+        try {
+            // make sure repoName not exists
+            var repoName = initRepoName
+            if(isRepoNameExist(repoName)) {
+                repoName = initRepoName+ "_"+getShortUUID(6)
+                if(isRepoNameExist(repoName)) {
+                    repoName = initRepoName+ "_"+getShortUUID(8)
+                    if(isRepoNameExist(repoName)) {
+                        repoName = initRepoName+ "_"+getShortUUID(10)
+                        if(isRepoNameExist(repoName)) {
+                            repoName = initRepoName+ "_"+getShortUUID(12)
+                            if(isRepoNameExist(repoName)) {
+                                repoName = initRepoName+ "_"+getShortUUID(16)
+                            }
+                        }
+                    }
+                }
+            }
+
+            val repoEntity = RepoEntity()
+            val remoteEntityList = mutableListOf<RemoteEntity>()
+
+            repoEntity.repoName = repoName
+//                repoEntity.fullSavePath = repoDir.canonicalPath // bad, cause "repo/.git" and "repo", both can open as repo, and is same repo, but difference path
+            repoEntity.fullSavePath = repoWorkDirPath
+            repoEntity.workStatus = Cons.dbRepoWorkStatusUpToDate
+            repoEntity.createBy = Cons.dbRepoCreateByImport
+
+            if(parentRepoId != null) {
+                repoEntity.parentRepoId = parentRepoId
+            }
+
+            val remotes = Libgit2Helper.getRemoteList(repo)
+            remotes.forEachBetter { remoteName ->
+                val remoteEntity = RemoteEntity()
+                remoteEntity.remoteName = remoteName
+                remoteEntity.repoId = repoEntity.id
+
+                //严格来说应该选两个凭据，一个在fetch时使用，另一个在push时使用，但多数情况fetch/push的url相同，用的凭据也相同，
+                // 所以实现的时候就做成了只能选一个凭据。（导入时选不选凭据其实无所谓，反正之后都可以手动关联）
+                if(credentialId!=null) {
+                    remoteEntity.credentialId = credentialId
+                    remoteEntity.pushCredentialId = credentialId
+                }
+
+                remoteEntityList.add(remoteEntity)
+            }
+
+            val remoteDb = AppModel.dbContainer.remoteRepository
+            AppModel.dbContainer.db.withTransaction {
+                // insert repo
+                insert(repoEntity)
+
+                // insert remotes
+                remoteEntityList.forEachBetter {remote ->
+                    remoteDb.insert(remote)
+                }
+            }
+
+            // in most case, this list is all repos list, if success, add repo into it, or dont add if is not necessary
+            try {
+                addRepoToThisListIfSuccess?.add(repoEntity)
+            }catch (addToListException:Exception) {
+                // concurrent exception, maybe, but is ok, because repo is inserted, so ignore add to list exception
+                MyLog.e(TAG, "#$funName: err when add repo to list, err=${addToListException.localizedMessage}")
+            }
+
+            return true
+        }catch (e:Exception) {
+            MyLog.e(TAG, "#$funName: import repo err, err=${e.stackTraceToString()}")
+            return false
+        }
+    }
+
+    override suspend fun isGoodRepoName(name: String): Boolean {
+        return !strHasIllegalChars(name) && !isRepoNameExist(name)
+    }
+
+    override suspend fun updateRepoName(repoId:String, name: String) {
+        dao.updateRepoName(repoId, name)
+    }
+
+    private fun repoIsReady(repoEntity: RepoEntity?): Boolean {
+        return isRepoReadyAndPathExist(repoEntity)
+    }
+
+    private fun repoIsNotReady(repoEntity: RepoEntity?) = repoIsReady(repoEntity).not();
+
     /*
         suspend fun exampleWithTransaction(){
             //get other dao
-            val otherDao = AppModel.singleInstanceHolder.dbContainer.db.credentialDao()
+            val otherDao = AppModel.dbContainer.db.credentialDao()
             //get other repository
-            val otherRepository = AppModel.singleInstanceHolder.dbContainer.credentialRepository
+            val otherRepository = AppModel.dbContainer.credentialRepository
 
             // do transaction
-            AppModel.singleInstanceHolder.dbContainer.db.withTransaction {
+            AppModel.dbContainer.db.withTransaction {
                 //use dao
                 dao.insert(RepoEntity())
                 otherDao.delete(CredentialEntity())
@@ -323,4 +613,10 @@ class RepoRepositoryImpl(private val dao: RepoDao) : RepoRepository {
     override suspend fun isRepoNameAlreadyUsedByOtherItem(repoName: String, excludeId: String): Boolean {
         return getIdByRepoNameAndExcludeId(repoName, excludeId) != null
     }
+
+
+    override suspend fun subtractTimeOffset(offsetInSec:Long) {
+        dao.subtractTimeOffset(offsetInSec)
+    }
+
 }

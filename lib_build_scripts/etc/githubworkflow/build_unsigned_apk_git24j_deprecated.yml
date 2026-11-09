@@ -1,0 +1,123 @@
+name: Build Libs And Unsigned APK
+
+on:
+#  push:
+#    tags:
+#      - 'v*'  # 触发条件：当推送标签以 'v' 开头时
+  workflow_dispatch:  # 允许手动触发工作流
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04  # 使用 Ubuntu 运行环境
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      # with:
+          # submodules: true
+          # repository: catpuppyapp/PuppyGit
+          # fetch-depth: 1
+          # ref: main
+          # path: PuppyGit  # if set, must use `$GITHUB_WORKSPACE/PuppyGit` to access the dir, else can simple use `$GITHUB_WORKSPACE`
+
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'  # 设置 JDK 版本
+          distribution: 'temurin'  # 指定 JDK 发行版（例如 'adopt', 'zulu', 'temurin', 'oracle' 等）
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            curl \
+            make \
+            tar \
+            maven \
+            unzip \
+            git
+
+      # - name: Download Android Command Line Tools
+      #   run: |
+      #     export ANDROID_HOME=$HOME/android-sdk
+      #     mkdir -p $ANDROID_HOME/cmdline-tools
+      #     curl -L -o cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+      #     unzip cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
+      #     rm cmdline-tools.zip
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.22.1'
+
+      - name: Install Require Software
+        run: bash $GITHUB_WORKSPACE/lib_build_scripts/1_installrequire_no_sudo_and_apt.sh
+      
+      - name: Download Src
+        run: bash $GITHUB_WORKSPACE/lib_build_scripts/2_downloadsrc.sh
+
+      - name: Build JAVA Libs
+        run: |
+          export ppgit_jar_lib_out=$GITHUB_WORKSPACE/app/libs
+          cd $GITHUB_WORKSPACE/lib_build_scripts
+          # clean lib out dir, actually this is unnecessary, cause will overide the old libs after built, run this for promise if lib build faild, then the apk will failed as well
+          rm -rf $ppgit_jar_lib_out/*
+          bash 2.5_buildjarlibs.sh $ppgit_jar_lib_out
+
+      - name: "List JAVA Libs"
+        run: ls -R $GITHUB_WORKSPACE/app/libs
+          
+      - name: Upload JAVA Libs
+        uses: actions/upload-artifact@v7
+        with:
+          name: java_libs
+          path: ${{ github.workspace }}/app/libs/  # no end with '/' is ok though, but '/' can indicate it's a folder
+          retention-days: 15
+            
+      - name: Build C Libs
+        run: |
+          export ppgit_c_lib_out=$GITHUB_WORKSPACE/app/src/main/jniLibs
+          cd $GITHUB_WORKSPACE/lib_build_scripts
+          rm -rf $ppgit_c_lib_out/*
+          bash 3_buildlibs.sh $ppgit_c_lib_out
+      
+      - name: "List C Libs"
+        run: ls -R $GITHUB_WORKSPACE/app/src/main/jniLibs
+             
+      - name: Upload C Libs
+        uses: actions/upload-artifact@v7
+        with:
+          name: c_libs
+          path: ${{ github.workspace }}/app/src/main/jniLibs/
+          retention-days: 15
+
+      - name: Build Release APK
+        run: |
+          cd $GITHUB_WORKSPACE
+          chmod +x gradlew
+          ./gradlew clean
+          ./gradlew assembleRelease
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-unsigned.apk
+          path: ${{ github.workspace }}/app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 15
+          
+      - name: Build Debug APK
+        run: |
+          cd $GITHUB_WORKSPACE
+          chmod +x gradlew
+          ./gradlew clean
+          ./gradlew assembleDebug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-debug-unsigned.apk
+          path: ${{ github.workspace }}/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 15
+        
+        

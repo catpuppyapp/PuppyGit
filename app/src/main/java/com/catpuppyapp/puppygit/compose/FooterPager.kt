@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
@@ -29,7 +29,7 @@ fun FooterPager(currentPage:MutableIntState, sumPage:Int) {
     ){
         LongPressAbleIconBtn(
             tooltipText = stringResource(R.string.previous_page),
-            icon =  Icons.Filled.KeyboardArrowLeft,
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
             iconContentDesc = stringResource(R.string.previous_page),
             iconModifier = Modifier.size(100.dp),
             enabled = currentPage.intValue>1,
@@ -43,7 +43,7 @@ fun FooterPager(currentPage:MutableIntState, sumPage:Int) {
 
         LongPressAbleIconBtn(
             tooltipText = stringResource(R.string.next_page),
-            icon =  Icons.Filled.KeyboardArrowRight,
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             iconContentDesc = stringResource(R.string.next_page),
             iconModifier = Modifier.size(100.dp),
             enabled = currentPage.intValue<sumPage,

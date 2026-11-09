@@ -13,8 +13,13 @@
 
 /**
  * @file git2/stash.h
- * @brief Git stash management routines
+ * @brief Stashes stores some uncommitted state in the repository
  * @ingroup Git
+ *
+ * Stashes stores some uncommitted state in the repository; generally
+ * this allows a user to stash some changes so that they can restore
+ * the working directory to an unmodified state. This can allow a
+ * developer to work on two different changes in parallel.
  * @{
  */
 GIT_BEGIN_DECL
@@ -94,7 +99,10 @@ typedef struct git_stash_save_options {
 	git_strarray paths;
 } git_stash_save_options;
 
+/** Current version for the `git_stash_save_options` structure */
 #define GIT_STASH_SAVE_OPTIONS_VERSION 1
+
+/** Static constructor for `git_stash_save_options` */
 #define GIT_STASH_SAVE_OPTIONS_INIT { GIT_STASH_SAVE_OPTIONS_VERSION }
 
 /**
@@ -165,6 +173,10 @@ typedef enum {
  * Stash application progress notification function.
  * Return 0 to continue processing, or a negative value to
  * abort the stash application.
+ *
+ * @param progress the progress information
+ * @param payload the user-specified payload to the apply function
+ * @return 0 on success, -1 on error
  */
 typedef int GIT_CALLBACK(git_stash_apply_progress_cb)(
 	git_stash_apply_progress_t progress,
@@ -191,7 +203,10 @@ typedef struct git_stash_apply_options {
 	void *progress_payload;
 } git_stash_apply_options;
 
+/** Current version for the `git_stash_apply_options` structure */
 #define GIT_STASH_APPLY_OPTIONS_VERSION 1
+
+/** Static constructor for `git_stash_apply_options` */
 #define GIT_STASH_APPLY_OPTIONS_INIT { \
 	GIT_STASH_APPLY_OPTIONS_VERSION, \
 	GIT_STASH_APPLY_DEFAULT, \
@@ -224,8 +239,6 @@ GIT_EXTERN(int) git_stash_apply_options_init(
  * conflicts when reinstating the index, the function will return
  * GIT_EMERGECONFLICT and both the working directory and index will be left
  * unmodified.
- *
- * Note that a minimum checkout strategy of `GIT_CHECKOUT_SAFE` is implied.
  *
  * @param repo The owning repository.
  * @param index The position within the stash list. 0 points to the
@@ -311,4 +324,5 @@ GIT_EXTERN(int) git_stash_pop(
 
 /** @} */
 GIT_END_DECL
+
 #endif

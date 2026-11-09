@@ -1,0 +1,5 @@
+- add dev mode
+- update russian translation (thx @triksterr)
+- support commit/unstage/revert items from Diff screen
+- optimize match by words for compare files
+- icon style follow system theme (android 13+) (pr #33, thx @sebastien46)

@@ -1,0 +1,4 @@
+- switch dark theme no more restart app required
+- fix bug of Diff Screen select compare: when group by line off, select two lines no match will not update target line, but it should update to no match
+- fix after rotated screen force back to Home screen (issue #19)
+- add timezone settings, default is follow system (issue #20)

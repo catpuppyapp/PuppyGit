@@ -1,0 +1,2 @@
+- support viewing commit history graphically
+- support force push with lease

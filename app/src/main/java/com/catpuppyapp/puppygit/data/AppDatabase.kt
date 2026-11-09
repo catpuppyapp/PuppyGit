@@ -21,6 +21,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.catpuppyapp.puppygit.data.dao.CredentialDao
+import com.catpuppyapp.puppygit.data.dao.DomainCredentialDao
 import com.catpuppyapp.puppygit.data.dao.ErrorDao
 import com.catpuppyapp.puppygit.data.dao.PassEncryptDao
 import com.catpuppyapp.puppygit.data.dao.RemoteDao
@@ -28,6 +29,7 @@ import com.catpuppyapp.puppygit.data.dao.RepoDao
 import com.catpuppyapp.puppygit.data.dao.SettingsDao
 import com.catpuppyapp.puppygit.data.dao.StorageDirDao
 import com.catpuppyapp.puppygit.data.entity.CredentialEntity
+import com.catpuppyapp.puppygit.data.entity.DomainCredentialEntity
 import com.catpuppyapp.puppygit.data.entity.ErrorEntity
 import com.catpuppyapp.puppygit.data.entity.PassEncryptEntity
 import com.catpuppyapp.puppygit.data.entity.RemoteEntity
@@ -40,6 +42,9 @@ import com.catpuppyapp.puppygit.data.migration.MIGRATION_18_19
 import com.catpuppyapp.puppygit.data.migration.MIGRATION_19_20
 import com.catpuppyapp.puppygit.data.migration.MIGRATION_20_21
 import com.catpuppyapp.puppygit.data.migration.MIGRATION_21_22
+import com.catpuppyapp.puppygit.data.migration.MIGRATION_22_23
+import com.catpuppyapp.puppygit.data.migration.MIGRATION_23_24
+import com.catpuppyapp.puppygit.data.migration.MIGRATION_24_25
 
 /**
  * Database class with a singleton Instance object.
@@ -52,9 +57,10 @@ import com.catpuppyapp.puppygit.data.migration.MIGRATION_21_22
                         RemoteEntity::class,
                         SettingsEntity::class,
                         PassEncryptEntity::class,
-                        StorageDirEntity::class
+                        StorageDirEntity::class,
+                        DomainCredentialEntity::class
                      ],
-    version = 22,
+    version = 25,
     //如果支持生成迁移sql，必须设置exportSchema为true，不然就得自己写sql了
     //自动迁移是根据导出的方案生成sql的
     exportSchema = true,
@@ -72,6 +78,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun passEncryptDao(): PassEncryptDao
     abstract fun storageDirDao(): StorageDirDao
+    abstract fun domainCredentialDao(): DomainCredentialDao
 
     companion object {
         @Volatile
@@ -90,7 +97,9 @@ abstract class AppDatabase : RoomDatabase() {
                      */
 
                         //迁移失败时删除所有数据重新建表，数据会丢，慎用，调试时频繁改表结构，开启这个很有用，生产环境最好别开，实在不行可通过清除app信息删除旧表
-//                    //谨慎使用，最好别用 .fallbackToDestructiveMigration()
+//                    //谨慎使用，最好别用 // ///////.fallbackToDestr///////uctiveMigration()
+
+
                     .addMigrations(
 //                        MIGRATION_3_4,
 //                        MIGRATION_12_13,
@@ -100,6 +109,9 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_19_20,
                         MIGRATION_20_21,
                         MIGRATION_21_22,
+                        MIGRATION_22_23,
+                        MIGRATION_23_24,
+                        MIGRATION_24_25
                         //more migration if have
                         )
                     .build()

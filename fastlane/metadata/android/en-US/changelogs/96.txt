@@ -1,0 +1,4 @@
+- long press commit hash in RepoCard will copy it
+- support filter Repo list by storage path and update time
+- support import local Repo from top bar of Repos screen
+- request manage storage permission when import repos from local

@@ -1,0 +1,94 @@
+# 仅构建 apk，不构建libs(使用预编译的库)
+name: Build Unsigned APK Only
+
+on:
+#  push:
+#    tags:
+#      - 'v*'  # 触发条件：当推送标签以 'v' 开头时
+  workflow_dispatch:  # 允许手动触发工作流
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04  # 使用 Ubuntu 运行环境
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      # with:
+          # submodules: true
+          # repository: catpuppyapp/PuppyGit
+          # fetch-depth: 1
+          # ref: main
+          # path: PuppyGit  # if set, must use `$GITHUB_WORKSPACE/PuppyGit` to access the dir, else can simple use `$GITHUB_WORKSPACE`
+
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'  # 设置 JDK 版本
+          distribution: 'temurin'  # 指定 JDK 发行版（例如 'adopt', 'zulu', 'temurin', 'oracle' 等）
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            curl \
+            make \
+            tar \
+            maven \
+            unzip \
+            git
+
+#      - name: Setup cmake
+#        uses: jwlawson/actions-setup-cmake@v2
+#        with:
+#          cmake-version: '3.31.1'
+
+
+      - name: Install Require Software
+        run: bash $GITHUB_WORKSPACE/lib_build_scripts/1_installrequire.sh
+
+      - name: Build Release APK
+        run: |
+          cd $GITHUB_WORKSPACE
+          chmod +x gradlew
+          ./gradlew clean
+          ./gradlew assembleRelease -q
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-unsigned.apk
+          path: ${{ github.workspace }}/app/build/outputs/apk/release
+          retention-days: 15
+
+      # symbols and mapping files
+      - name: Upload Release Apk Symbols
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-symbols-and-mappings
+          path: ${{ github.workspace }}/app/build/outputs
+          retention-days: 15
+
+      - name: Build Debug APK
+        run: |
+          cd $GITHUB_WORKSPACE
+          chmod +x gradlew
+          ./gradlew clean
+          ./gradlew assembleDebug -q
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-debug-unsigned.apk
+          path: ${{ github.workspace }}/app/build/outputs/apk/debug
+          retention-days: 15
+        
+
+      # symbols and mapping files
+      - name: Upload Debug Apk Symbols
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-debug-symbols-and-mappings
+          path: ${{ github.workspace }}/app/build/outputs
+          retention-days: 15

@@ -17,9 +17,9 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.ContactPage
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.LocalPolice
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.TableView
 import androidx.compose.material.icons.outlined.VideoFile
@@ -35,7 +35,7 @@ enum class MimeTypeIcon(val icon: ImageVector) {
     ARCHIVE(outLinedIcons.Archive),
     AUDIO(outLinedIcons.AudioFile),
     CALENDAR(outLinedIcons.CalendarMonth),
-    CERTIFICATE(outLinedIcons.LocalPolice),
+    CERTIFICATE(outLinedIcons.Fingerprint),
     CODE(outLinedIcons.Code),
     CONTACT(outLinedIcons.ContactPage),
     DIRECTORY(filledIcons.Folder),
@@ -66,6 +66,37 @@ val MimeType.icon: MimeTypeIcon
 
 // See also https://mimesniff.spec.whatwg.org/#mime-type-groups
 private val mimeTypeToIconMap = mapOf(
+    "application/x-go" to MimeTypeIcon.CODE,
+    "application/x-kotlin" to MimeTypeIcon.CODE,
+    "application/x-jsx" to MimeTypeIcon.CODE,
+    "application/x-tsx" to MimeTypeIcon.CODE,
+    "application/x-groovy" to MimeTypeIcon.CODE,
+    "application/x-batchfile" to MimeTypeIcon.CODE,
+    "application/x-powershell" to MimeTypeIcon.CODE,
+    "application/x-fsharp" to MimeTypeIcon.CODE,
+    "application/x-julia" to MimeTypeIcon.CODE,
+
+    "application/x-less" to MimeTypeIcon.CODE,
+    "application/x-scss" to MimeTypeIcon.CODE,
+    "application/x-rust" to MimeTypeIcon.CODE,
+    "application/x-coffee" to MimeTypeIcon.CODE,
+    "application/x-clojure" to MimeTypeIcon.CODE,
+    "application/x-lua" to MimeTypeIcon.CODE,
+    "application/x-php" to MimeTypeIcon.CODE,
+    "application/x-r" to MimeTypeIcon.CODE,
+    "application/x-sql" to MimeTypeIcon.CODE,
+    "application/x-swift" to MimeTypeIcon.CODE,
+    "application/x-vb" to MimeTypeIcon.CODE,
+    "application/x-raku" to MimeTypeIcon.CODE,
+    "application/x-toml" to MimeTypeIcon.CODE,
+    "application/x-dart" to MimeTypeIcon.CODE,
+    "application/x-dockerfile" to MimeTypeIcon.CODE,
+    "application/x-makefile" to MimeTypeIcon.CODE,
+    "application/x-zig" to MimeTypeIcon.CODE,
+    "application/x-proguard" to MimeTypeIcon.CODE,
+    "application/x-vue" to MimeTypeIcon.CODE,
+
+
     "application/vnd.android.package-archive" to MimeTypeIcon.APK,
     "application/gzip" to MimeTypeIcon.ARCHIVE,
     // Not in IANA list, but Mozilla and Wikipedia say so.

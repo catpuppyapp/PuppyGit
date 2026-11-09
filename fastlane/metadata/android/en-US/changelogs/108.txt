@@ -1,0 +1,1 @@
+- show cursor handle for Editor

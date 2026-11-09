@@ -1,0 +1,1 @@
+- Files title now can select storage paths

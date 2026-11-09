@@ -1,0 +1,2 @@
+- can choose checkout left or right when compare two commits
+- adjust time format for repo card

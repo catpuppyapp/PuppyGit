@@ -1,8 +1,11 @@
 package com.catpuppyapp.puppygit.git
 
+import android.content.Context
 import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
+import com.catpuppyapp.puppygit.utils.generateRandomString
+import com.catpuppyapp.puppygit.utils.getShortUUID
 import com.catpuppyapp.puppygit.utils.replaceStringResList
 import com.github.git24j.core.Branch.BranchType
 
@@ -23,18 +26,36 @@ class BranchNameAndTypeDto {
     //这个值有可能为空，因为remote名和本地分支名有可能出现歧义，若此值为空，代表remote分支名存在歧义，若想删除，需要用户手动输入一个分支名
     var remotePrefixFromShortName:String=""  //当分支是远程分支时此值可能不为空，代表的是远程分支前缀，例如 origin/main中的origin，注意 远程程名有可能包含分隔符，例如 abc/def/branchname，其中abc/def是远程名，所以可能存在歧义，有歧义时，此值为空字符串。
 
+
+
+
+
+
+    private var otherCached:String? = null
+    private var otherSearchableTextCached:String? = null
+
+
     fun isRemoteNameAmbiguous():Boolean {  //如果返回true，说明远程分支的remote存在歧义，无法成功解析，如果执行删除远程分支等操作，需要用户指定一个分支。另外，本地分支调用此方法无意义，会百分百返回true
         return remotePrefixFromShortName.isBlank()
     }
 
-    fun getAheadBehind():String {
-        val appContext = AppModel.singleInstanceHolder.appContext
-        if(ahead==0 && 0==behind) {
-            return appContext.getString(R.string.uptodate)
+    fun getAheadBehind(activityContext: Context, searchable: Boolean):String {
+        return if(alreadyUpToDate()) {
+            if(searchable) {
+                BranchSearchableText.upToDate
+            }else {
+                activityContext.getString(R.string.uptodate)
+            }
         }else {
-            return replaceStringResList(appContext.getString(R.string.ahead_n_behind_m), listOf(""+ahead, ""+behind))
+            if(searchable){
+                replaceStringResList(BranchSearchableText.ahead_n_behind_m, listOf(""+ahead, ""+behind))
+            }else{
+                replaceStringResList(activityContext.getString(R.string.ahead_n_behind_m), listOf(""+ahead, ""+behind))
+            }
         }
     }
+
+    fun alreadyUpToDate() = ahead == 0 && behind == 0;
 
     //若remote name不存在歧义，返回移除remotename后的分支名(例如输入 origin/main ，返回 main)，否则返回空字符串
     fun getBranchNameNoRemotePrefixOrEmptyStrIfAmbiguous():String {
@@ -67,55 +88,127 @@ class BranchNameAndTypeDto {
         return upstream?.isPublished == true
     }
 
-    fun getOther():String {
-        val appContext = AppModel.singleInstanceHolder.appContext
-        val suffix = ", "
-        val sb= StringBuilder()
-
-        //local独有字段
-        if(type == BranchType.LOCAL) {
-            sb.append(if(isCurrent) appContext.getString(R.string.is_current) else appContext.getString(R.string.not_current)).append(suffix)
-
-            sb.append(if(isUpstreamAlreadySet()) appContext.getString(R.string.has_upstream) else appContext.getString(R.string.no_upstream)).append(suffix)
-
-            //检查上游是否发布，没有上游一定是未发布，有上游也不一定是已发布，只有上游fetch下载的本地分支存在才当作已发布
-            sb.append(if(isPublished()) appContext.getString(R.string.is_published) else appContext.getString(R.string.not_published)).append(suffix)
+    fun getOther(activityContext:Context, searchable:Boolean):String {
+        val noCache = if(searchable) {
+            otherSearchableTextCached == null
+        }else {
+            otherCached == null
         }
 
-        //remote独有字段
-        if(type == BranchType.REMOTE) {
+        if(noCache) {
+            val suffix = ", "
+            val sb= StringBuilder()
 
+            //local独有字段
+            if(type == BranchType.LOCAL) {
+                sb.append(if(isCurrent) {
+                    if(searchable) {
+                        BranchSearchableText.isCurrent
+                    }else {
+                        activityContext.getString(R.string.is_current)
+                    }
+                } else {
+                    if(searchable) {
+                        BranchSearchableText.notCurrent
+                    }else {
+                        activityContext.getString(R.string.not_current)
+                    }
+                }).append(suffix)
+
+                sb.append(if(isUpstreamAlreadySet()) {
+                    if(searchable) {
+                        BranchSearchableText.hasUpstream
+                    }else {
+                        activityContext.getString(R.string.has_upstream)
+                    }
+
+                } else {
+                    if(searchable) {
+                        BranchSearchableText.noUpstream
+                    }else {
+                        activityContext.getString(R.string.no_upstream)
+                    }
+                }).append(suffix)
+
+                //检查上游是否发布，没有上游一定是未发布，有上游也不一定是已发布，只有上游fetch下载的本地分支存在才当作已发布
+                sb.append(if(isPublished()){
+                    if(searchable) {
+                        BranchSearchableText.isPublished
+                    }else {
+                        activityContext.getString(R.string.is_published)
+                    }
+                } else {
+                    if(searchable) {
+                        BranchSearchableText.notPublished
+                    }else {
+                        activityContext.getString(R.string.not_published)
+                    }
+                }).append(suffix)
+            }
+
+            //remote独有字段
+            if(type == BranchType.REMOTE) {
+
+            }
+
+            // local/remote 共有
+            sb.append(if(isSymbolic){
+                if(searchable) {
+                    BranchSearchableText.isSymbolic
+                }else {
+                    activityContext.getString(R.string.is_symbolic)
+                }
+            } else {
+                if(searchable) {
+                    BranchSearchableText.notSymbolic
+                }else {
+                    activityContext.getString(R.string.not_symbolic)
+                }
+            }).append(suffix)
+
+
+            //如果最后一个条目不可在写代码时指定，改成sb.removeSuffix().toString，不过上面都是写死的代码，所以直接最后一个没加后缀，自然也不需要移除
+            val text = sb.removeSuffix(suffix).toString()
+            if(searchable) {
+                otherSearchableTextCached = text
+            }else {
+                otherCached = text
+            }
         }
 
-        // local/remote 共有
-        sb.append(if(isSymbolic) appContext.getString(R.string.is_symbolic) else appContext.getString(R.string.not_symbolic)).append(suffix)
-
-
-        //如果最后一个条目不可在写代码时指定，改成sb.removeSuffix().toString，不过上面都是写死的代码，所以直接最后一个没加后缀，自然也不需要移除
-        return sb.removeSuffix(suffix).toString()
+        return (if(searchable) otherSearchableTextCached else otherCached) ?: ""
     }
 
-    fun getTypeString():String {
-        val appContext = AppModel.singleInstanceHolder.appContext
-
-        return if(type == BranchType.LOCAL) appContext.getString(R.string.local) else appContext.getString(R.string.remote)
+    fun getTypeString(activityContext: Context, searchable: Boolean):String {
+        return if(type == BranchType.LOCAL) {
+            if(searchable) {
+                BranchSearchableText.local
+            }else {
+                activityContext.getString(R.string.local)
+            }
+        } else {
+            if(searchable) {
+                BranchSearchableText.remote
+            }else {
+                activityContext.getString(R.string.remote)
+            }
+        }
     }
 
-    fun getUpstreamShortName():String {
+    fun getUpstreamShortName(activityContext: Context):String {
         //非local直接返回空字符串
         if(type != BranchType.LOCAL) {
             return ""
         }
 
         //只有local branch才有upstream
-        val appContext = AppModel.singleInstanceHolder.appContext
 
         val shortUpstreamBranchName = upstream?.remoteBranchShortRefSpec ?:""
 
-        return shortUpstreamBranchName.ifBlank { "[" + appContext.getString(R.string.none) + "]" }
+        return shortUpstreamBranchName.ifBlank { "[" + activityContext.getString(R.string.none) + "]" }
     }
 
-    fun getUpstreamFullName(): String {
+    fun getUpstreamFullName(activityContext: Context): String {
 
         //非local直接返回空字符串
         if(type != BranchType.LOCAL) {
@@ -123,11 +216,28 @@ class BranchNameAndTypeDto {
         }
 
         //只有local branch才有upstream
-        val appContext = AppModel.singleInstanceHolder.appContext
 
         val upstreamBranchName = upstream?.remoteBranchRefsRemotesFullRefSpec ?:""
 
-        return upstreamBranchName.ifBlank { "[" + appContext.getString(R.string.none) + "]" }
+        return upstreamBranchName.ifBlank { "[" + activityContext.getString(R.string.none) + "]" }
 
     }
 }
+
+
+private object BranchSearchableText {
+    const val isCurrent = "IsCurrent"
+    const val notCurrent = "NotCurrent"
+    const val hasUpstream = "HasUpstream"
+    const val noUpstream = "NoUpstream"
+    const val isPublished = "IsPublished"
+    const val notPublished = "NotPublished"
+    const val isSymbolic = "IsSymbolic"
+    const val notSymbolic = "NotSymbolic"
+    const val local = "Local"
+    const val remote = "Remote"
+    const val upToDate = "UpToDate"
+    const val ahead_n_behind_m = "ahead ph_a3f241dc_1, behind ph_a3f241dc_2"
+
+}
+

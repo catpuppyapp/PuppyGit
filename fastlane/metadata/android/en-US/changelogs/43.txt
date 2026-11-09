@@ -1,0 +1,1 @@
+- fixed when edit repo and don't change the url, the new credential will show username/password even is ssh url(issue https://github.com/catpuppyapp/PuppyGit/issues/5)

@@ -1,0 +1,3 @@
+- fix: reload item err after reset and checkout in commit history screen
+- fix: load resource failed when editor preview mode on
+- add new language Bangla (thx @kamilhussen24)

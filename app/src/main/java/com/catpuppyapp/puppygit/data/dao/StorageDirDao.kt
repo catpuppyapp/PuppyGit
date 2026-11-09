@@ -62,4 +62,6 @@ interface StorageDirDao {
     @Query("SELECT * from storageDir where baseStatus=:status")
     suspend fun getListByStatus(status:Int): List<StorageDirEntity>
 
+    @Query("UPDATE storageDir set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)")
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 }

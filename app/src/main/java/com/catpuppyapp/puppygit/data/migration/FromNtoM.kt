@@ -49,3 +49,24 @@ val MIGRATION_21_22 = object : Migration(21, 22) {
         db.execSQL("ALTER TABLE remote ADD COLUMN pushCredentialId TEXT NOT NULL DEFAULT ''")
     }
 }
+
+val MIGRATION_22_23 = object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val TABLE_NAME = "domain_credential"
+        val createTableSql = "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `domain` TEXT NOT NULL, `credentialId` TEXT NOT NULL, `baseStatus` INTEGER NOT NULL, `baseCreateTime` INTEGER NOT NULL, `baseUpdateTime` INTEGER NOT NULL, `baseIsDel` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        db.execSQL(createTableSql)
+    }
+}
+
+val MIGRATION_23_24 = object : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE domain_credential ADD COLUMN sshCredentialId TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+val MIGRATION_24_25 = object : Migration(24, 25) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // default 5是因为是在加密器为5的版本添加的encryptVer字段
+        db.execSQL("ALTER TABLE credential ADD COLUMN encryptVer INTEGER NOT NULL DEFAULT 5")
+    }
+}

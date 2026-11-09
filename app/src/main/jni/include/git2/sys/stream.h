@@ -11,8 +11,16 @@
 #include "git2/types.h"
 #include "git2/proxy.h"
 
+/**
+ * @file git2/sys/stream.h
+ * @brief Streaming file I/O functionality
+ * @defgroup git_stream Streaming file I/O functionality
+ * @ingroup Git
+ * @{
+ */
 GIT_BEGIN_DECL
 
+/** Current version for the `git_stream` structures */
 #define GIT_STREAM_VERSION 1
 
 /**
@@ -29,8 +37,8 @@ GIT_BEGIN_DECL
 typedef struct git_stream {
 	int version;
 
-	int encrypted : 1,
-	    proxy_support : 1;
+	unsigned int encrypted : 1,
+	             proxy_support : 1;
 
 	/**
 	 * Timeout for read and write operations; can be set to `0` to
@@ -147,6 +155,7 @@ GIT_EXTERN(int) git_stream_register_tls(git_stream_cb ctor);
 
 #endif
 
+/**@}*/
 GIT_END_DECL
 
 #endif

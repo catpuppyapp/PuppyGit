@@ -26,7 +26,7 @@ fun MyCheckBox(
     value: MutableState<Boolean>,
     enabled: Boolean = true,
     height: Dp = MyStyleKt.CheckoutBox.height,
-    onValueChange: (Boolean)->Unit = {value.value = !value.value}
+    onValueChange: (newValue:Boolean)->Unit = {value.value = it}
 ) {
     val inDarkTheme = Theme.inDarkTheme
 
@@ -40,7 +40,7 @@ fun MyCheckBox(
                 onValueChange = { onValueChange(it) },  //话说这个it是不是新值，所以不反转原始值直接 value = it，不就行了？
                 role = Role.Checkbox
             )
-            .padding(horizontal = MyStyleKt.CheckoutBox.horizontalPadding),
+            .padding(horizontal = MyStyleKt.defaultHorizontalPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(

@@ -3,20 +3,23 @@ package com.catpuppyapp.puppygit.utils.cert
 import android.content.Context
 import com.catpuppyapp.puppygit.etc.CertSaver
 import com.catpuppyapp.puppygit.play.pro.R
-import com.catpuppyapp.puppygit.utils.AppModel
+import com.catpuppyapp.puppygit.utils.FsUtils
 import com.catpuppyapp.puppygit.utils.Msg
 import com.catpuppyapp.puppygit.utils.MyLog
+import com.catpuppyapp.puppygit.utils.readIntVersionFromFile
+import com.catpuppyapp.puppygit.utils.writeIntVersionToFile
 import com.github.git24j.core.Libgit2
 import java.io.File
 
 object CertMan {
-    private val TAG = "CertMan"
+    private const val TAG = "CertMan"
 
     //若更新证书，应更新此值
-    const val currentVersion = 1
+    const val currentVersion = 14
 
     private val certRawId = R.raw.cert_bundle_pem
 
+//    private val inited = mutableStateOf(false)
 
     const val defaultCertBundleDirName = "cert-bundle"
     const val defaultCertUserDirName = "cert-user"  //存放用户证书的目录，自签证书之类的可以放这里，app会自动加载，自签证书并不是在加密上有问题，只是不被公众信任，用户如果自签，也并非一定不安全，另外：这块功能我没测试
@@ -24,8 +27,8 @@ object CertMan {
 
     const val certBundleFileName = "cacertpem"
     const val certBundleVersionFileName = "cacertpem-version"
-    lateinit var certBundleFile:File;
-    lateinit var certBundleVersionFile:File;
+    private lateinit var certBundleFile:File;
+    private lateinit var certBundleVersionFile:File;
 
     val sysCertList = listOf<CertSaver>(
         //android version <14 system cert path
@@ -40,14 +43,18 @@ object CertMan {
      *
      */
     fun init(appContext: Context, certBundleDir:File, certUserDir:File) {
+//        if(inited.value.not()) {
+//            inited.value = true
+
         //加载app内置证书
         loadAppCert(appContext, certBundleDir)
 
         //加载用户证书
         loadUserCerts(certUserDir)
 
-        //加载系统证书
+            //加载系统证书
 //        loadSysCerts()
+//        }
     }
 
     /**
@@ -76,15 +83,7 @@ object CertMan {
         //检查版本号，如果
         certBundleVersionFile = File(certBundleDir, certBundleVersionFileName)
         //读取已经存在的版本号
-        val verInFile = try{
-            if(certBundleVersionFile.exists()) {
-                certBundleVersionFile.inputStream().bufferedReader().readLine().toInt()
-            }else {
-                -1
-            }
-        }catch (e:Exception) {
-            -1
-        }
+        val verInFile = readIntVersionFromFile(certBundleVersionFile)
 
         // out put file
         certBundleFile = File(certBundleDir, certBundleFileName)
@@ -107,22 +106,10 @@ object CertMan {
 //        println("要读取证书了")
 
         //从app res读取证书内容到文件
-        val certResInput = appContext.resources.openRawResource(certRawId)
-        val certBundleOutput = certBundleFile.outputStream()
-        certResInput.use { input ->
-            certBundleOutput.use { output->
-                var b = input.read()
-                while(b!=-1) {
-                    output.write(b)
-                    b = input.read()
-                }
-            }
-        }
+        FsUtils.copy(appContext.resources.openRawResource(certRawId), certBundleFile.outputStream())
 
         //更新版本号（注：要确保读取成功后再更新版本号
-        certBundleVersionFile.outputStream().writer().use {
-            it.write(currentVersion.toString())
-        }
+        writeIntVersionToFile(certBundleVersionFile, currentVersion)
 //        println("读取证书成功")
     }
 
@@ -135,7 +122,8 @@ object CertMan {
             try {
                 Libgit2.optsGitOptSetSslCertLocations(certSaver.file, certSaver.path)
             } catch (e: Exception) {
-                MyLog.e(TAG, "#loadCerts err: cert=$certSaver, err=${e.stackTraceToString()}")
+                MyLog.e(TAG, "#loadCerts err: cert=$certSaver, err=${e.localizedMessage}")
+                e.printStackTrace()
             }
         }
     }
@@ -157,7 +145,7 @@ object CertMan {
                 return
             }
 
-            val userCerts = certUserDir.listFiles{it:File -> it.isFile}?.map { CertSaver(file = it.canonicalPath) }?: listOf()
+            val userCerts = obtainUserCerts(certUserDir)
 
             //加载用户证书
             loadCerts(userCerts)
@@ -166,6 +154,22 @@ object CertMan {
             MyLog.e(TAG, "#$funName err: ${e.stackTraceToString()}")
         }
 
+    }
+
+    private fun obtainUserCerts(certUserDir: File): List<CertSaver> {
+        val certs = mutableListOf<CertSaver>()
+        certUserDir.listFiles { it:File ->
+            if(it.isFile) {
+                certs.add(CertSaver(file = it.canonicalPath))
+            }
+
+            // actually this lambda is a filter,
+            //   return false to avoid create
+            //   nonsense temp filtered list
+            false
+        }
+
+        return certs
     }
 
 }

@@ -1,0 +1,1 @@
+- change style of Files screen title

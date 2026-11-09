@@ -1,0 +1,3 @@
+- markdown support kotlin code block
+- fix editor menu can't full expanded after ime hidden
+- update dependencies

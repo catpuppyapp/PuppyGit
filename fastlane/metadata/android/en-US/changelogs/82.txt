@@ -1,0 +1,5 @@
+- fix: Editor load file twice when open file
+- fix: if compare to ref which include '/', then app will crash
+- fix: bugs of screen navigate
+- fix: rotation screen lost state
+- reduce memory use

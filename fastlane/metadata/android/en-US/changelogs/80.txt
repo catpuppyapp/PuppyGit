@@ -1,0 +1,3 @@
+- fix: clone submodule err when require authentication
+- support shallow clone submodules
+- optimize code

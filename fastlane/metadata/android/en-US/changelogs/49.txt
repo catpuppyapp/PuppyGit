@@ -1,0 +1,4 @@
+- ChangeList: move "Sync" button from BottomBar to commit msg dialog
+- support Undo/Redo for Editor
+- support stage item on DiffScreen
+- update libgit2 to 1.9.0 (fix ssh shallow clone err, issue #10)

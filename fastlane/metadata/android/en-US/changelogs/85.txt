@@ -1,0 +1,2 @@
+- show icon for apks and images in the file list
+- minor bugs fixed

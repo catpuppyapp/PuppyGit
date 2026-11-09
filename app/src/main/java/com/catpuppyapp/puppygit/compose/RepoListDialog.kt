@@ -87,7 +87,7 @@ package com.catpuppyapp.puppygit.compose
 //    LaunchedEffect(Unit) {
 //        try {
 //            doJobThenOffLoading {
-//                val repoDb = AppModel.singleInstanceHolder.dbContainer.repoRepository
+//                val repoDb = AppModel.dbContainer.repoRepository
 //                val readyRepoListFromDb = repoDb.getReadyRepoList()
 ////                println(readyRepoListFromDb.size)
 //                repoList.clear()

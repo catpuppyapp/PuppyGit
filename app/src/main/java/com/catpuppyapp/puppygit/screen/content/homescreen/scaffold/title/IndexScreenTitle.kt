@@ -2,32 +2,30 @@ package com.catpuppyapp.puppygit.screen.content.homescreen.scaffold.title
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.compose.IconOfRepoState
+import com.catpuppyapp.puppygit.compose.RepoInfoDialog
+import com.catpuppyapp.puppygit.compose.ScrollableRow
+import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
+import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.screen.functions.defaultTitleDoubleClick
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
-import com.catpuppyapp.puppygit.utils.Msg
-import com.catpuppyapp.puppygit.utils.UIHelper
 import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
-import com.catpuppyapp.puppygit.utils.state.StateUtil
-import com.github.git24j.core.Repository
 import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -36,48 +34,61 @@ fun IndexScreenTitle(
     curRepo: CustomStateSaveable<RepoEntity>,
     repoState: MutableIntState,
     scope: CoroutineScope,
-    changeListPageItemListState: LazyListState
+    changeListPageItemListState: LazyListState,
+    lastPosition: MutableState<Int>,
 ) {
-    val haptic = LocalHapticFeedback.current
-    val appContext = LocalContext.current
+//    val haptic = LocalHapticFeedback.current
+    val activityContext = LocalContext.current
 
-    val needShowRepoState = StateUtil.getRememberSaveableState(initValue = false)
-    val repoStateText = StateUtil.getRememberSaveableState(initValue = "")
+    val showTitleInfoDialog = rememberSaveable { mutableStateOf(false) }
+    if(showTitleInfoDialog.value) {
+        RepoInfoDialog(
+            curRepo = curRepo.value,
+            showTitleInfoDialog = showTitleInfoDialog,
+            prependContent = {
+                Text(stringResource(R.string.comparing_label)+": "+ Libgit2Helper.getLeftToRightFullHash(Cons.git_HeadCommitHash, Cons.git_IndexCommitHash))
+            }
+        )
+    }
 
     //设置仓库状态，主要是为了显示merge
-    Libgit2Helper.setRepoStateText(repoState.intValue, needShowRepoState, repoStateText, appContext)
+    val repoStateText = rememberSaveable(repoState.intValue) { mutableStateOf(Libgit2Helper.getRepoStateText(repoState.intValue, activityContext)) }
+
+
 
     val getTitleColor = {
-        if(repoState.intValue == Repository.StateT.MERGE.bit || repoState.intValue == Repository.StateT.REBASE_MERGE.bit || repoState.intValue==Repository.StateT.CHERRYPICK.bit) Color.Red else Color.Unspecified
+//        UIHelper.getChangeListTitleColor(repoState.intValue)
+        Color.Unspecified
     }
 
     Column(modifier = Modifier
-        .widthIn(min = MyStyleKt.Title.clickableTitleMinWidth)
         .combinedClickable(
-            onDoubleClick = { UIHelper.scrollToItem(scope, changeListPageItemListState, 0) },
-            onLongClick = {  //长按显示仓库名
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                Msg.requireShow("'${curRepo.value.repoName}'")
-            }
+            onDoubleClick = {
+                defaultTitleDoubleClick(scope, changeListPageItemListState, lastPosition)
+            },
+            onLongClick = null
+//            {  //长按显示仓库名
+////                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+//            }
         ) { // onClick
-            //点按暂无操作
+            showTitleInfoDialog.value = true
         }
-        //外面的标题宽180.dp，这里的比外面的宽点，因为这个页面顶栏actions少
-        .widthIn(max = 200.dp)
+        .widthIn(min = MyStyleKt.Title.clickableTitleMinWidth)
     ) {
-        Row(modifier = Modifier.horizontalScroll(StateUtil.getRememberScrollState())) {
+        ScrollableRow {
+            IconOfRepoState(repoState.intValue)
 
             Text(
                 text = curRepo.value.repoName,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                fontSize = 18.sp,
+                fontSize = MyStyleKt.Title.firstLineFontSize,
                 color = getTitleColor()
             )
         }
-        Row(modifier = Modifier.horizontalScroll(StateUtil.getRememberScrollState())) {
+        ScrollableRow  {
             //"[Index]|Merging" or "[Index]"
-            Text(text = "["+stringResource(id = R.string.index)+"]" + (if(needShowRepoState.value) "|"+repoStateText.value else ""),
+            Text(text = "["+stringResource(id = R.string.index)+"]" + (if(repoStateText.value.isNotBlank()) " | ${repoStateText.value}" else ""),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontSize = MyStyleKt.Title.secondLineFontSize,

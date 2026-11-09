@@ -1,0 +1,1 @@
+- optimize line change type update logic for Editor

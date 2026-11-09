@@ -1,0 +1,31 @@
+name: Print Path
+
+on:
+#  push:
+#    tags:
+#      - 'v*'  # 触发条件：当推送标签以 'v' 开头时
+  workflow_dispatch:  # 允许手动触发工作流
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04  # 使用 Ubuntu 运行环境
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      # with:
+          # submodules: true
+          # repository: catpuppyapp/PuppyGit
+          # fetch-depth: 1
+          # ref: main
+          # path: PuppyGit  # if set, must use `$GITHUB_WORKSPACE/PuppyGit` to access the dir, else can simple use `$GITHUB_WORKSPACE`
+
+      - name: Print Path
+        run: |
+          echo "launch path after checkout=$(pwd)"
+          cd ~
+          echo "~=$(pwd)"
+          echo "HOME=$HOME"
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          echo "{{ github.workspace }}=${{ github.workspace }}"
+          echo "GITHUB_WORKSPACE and {{ github.workspace }} should has same value, the difference is: GITHUB_WORKSPACE replace when bash executing, {{ github.workspace }} replace when yml parsing"

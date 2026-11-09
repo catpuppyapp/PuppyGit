@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PuppyGit Pro</string>
+    <string name="app_name">PuppyGit</string>
     <string name="menu">Menu</string>
     <string name="close">Close</string>
     <string name="back">Back</string>
@@ -21,14 +21,12 @@
     <string name="branch_name">Branch Name</string>
     <string name="depth_optional">Depth (Optional)</string>
     <string name="depth">depth (e.g. 1)</string>
-    <string name="recursive_clone">Recursive Clone (Submodule)</string>
+    <string name="recursive_clone">Recursive Clone</string>
     <string name="single_branch">Single Branch</string>
     <string name="show_password">Show Password</string>
     <string name="hide_password">Hide Password</string>
-    <string name="local_repo_name">Repo Name</string>
-    <string name="local_repo_name_placeholder">Repo Name in Local</string>
+    <string name="repo_name">Repo Name</string>
     <string name="err_cant_get_repo_dir">Err: Can\'t get Repo Dir</string>
-    <string name="username_email">Username and Email</string>
     <string name="repo_active">Active</string>
     <string name="repo_set_active">Set Active</string>
     <string name="repo_label_remote">Remote</string>
@@ -75,7 +73,7 @@
     <string name="msg">Msg</string>
     <string name="error">Error</string>
     <string name="success">Success</string>
-    <string name="clear_all_ask_text">Will clear all errors, Are you sure?</string>
+    <string name="clear_all_ask_text">Will clear all, Are you sure?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="no_credential">No Credential</string>
@@ -87,12 +85,12 @@
     <string name="password">Password</string>
     <string name="private_key">Private Key</string>
     <string name="paste_your_private_key_here">Paste your private-key here</string>
-    <string name="passphrase_if_have">Passphrase(if have)</string>
-    <string name="input_passphrase_if_have">Input passphrase if have</string>
+    <string name="passphrase_if_have">Passphrase (if have)</string>
+    <string name="input_passphrase_if_have">Input passphrase (if have)</string>
     <string name="tap_for_select_credential">Tap for select credential</string>
     <string name="selected_credential">Selected credential:</string>
-    <string name="credential_name_exists_err">Credential name already Exists, please change it</string>
-    <string name="repo_name_exists_err">Repo name already Exists, please change it</string>
+    <string name="credential_name_exists_err">Credential name already exists, please try another</string>
+    <string name="repo_name_exists_err">Repo name already exists, please try another</string>
     <string name="cloning">Cloning…</string>
     <string name="edit_repo">Edit Repo</string>
     <string name="del_repo">Delete Repo</string>
@@ -125,7 +123,7 @@
 <!--    <string name="query_repo_for_changelist_err">ChangeList Error When Querying Repo</string>-->
 
     <!--    diff时，不知道文件是modification还是new还是delete-->
-    <string name="error_unknown_change_type">Error:unknown change type</string>
+    <string name="unknown_change_type">Unknown change type</string>
     <!--    diff line type-->
     <string name="diff_line_type_add">Add</string>
     <string name="diff_line_type_del">Del</string>
@@ -141,14 +139,13 @@
     <string name="unknown_err_plz_try_another_name">Unknown Err: plz try another name</string>
     <string name="open_file_failed">Err: Open file failed!</string>
     <string name="error_file_name_has_illegal_chars">Err: file name has illegal chars!</string>
-    <string name="open_with">Open with…</string>
     <string name="open">Open</string>
-    <string name="doesnt_support_view_binary_file">Doesn\'t support view binary file</string>
+    <string name="doesnt_support_view_binary_file">Viewing binary files is not supported</string>
     <string name="switch_repo">Switch Repository</string>
     <string name="refresh">Refresh</string>
 <!--    <string name="go_to_index_page">Go to Index page</string>-->
-    <string name="no_repo_for_shown">No Repo for shown</string>
-    <string name="end_of_the_list">--- End of the list ---</string>
+    <string name="no_repo_for_shown">No Repo For Shown</string>
+    <string name="end_of_the_list">--- End Of The List ---</string>
     <string name="commit_selected_and_index_items_then_sync">Commit selected and Index items then sync with Remote</string>
     <string name="commit_selected_and_index_items">Commit selected and Index items</string>
     <string name="select_all">Select All</string>
@@ -192,15 +189,15 @@
     <string name="pull">Pull</string>
     <string name="sync">Sync</string>
     <string name="pull_success">Pull Success</string>
-    <string name="pull_failed">Pull Failed!</string>
-    <string name="push_failed">Push Failed!</string>
+    <string name="pull_failed">Pull Failed</string>
+    <string name="push_failed">Push Failed</string>
     <string name="push_success">Push Success</string>
-    <string name="sync_failed">Sync Failed!</string>
-    <string name="merge_failed">Merge Failed!</string>
+    <string name="sync_failed">Sync Failed</string>
+    <string name="merge_failed">Merge Failed</string>
     <string name="err_upstream_invalid_plz_try_sync_first">err: upstream invalid, plz try sync first</string>
     <string name="plz_set_username_and_email_first">plz set Username and Email first</string>
     <string name="has_conflicts">Has Conflicts!</string>
-    <string name="commit_failed">Commit Failed!</string>
+    <string name="commit_failed">Commit Failed</string>
     <string name="reverting">Reverting…</string>
     <string name="syncing">Syncing…</string>
     <string name="pulling">Pulling…</string>
@@ -216,17 +213,16 @@
     <string name="http_https">http/https</string>
     <string name="ssh">ssh</string>
     <string name="edit_credential">Edit Credential</string>
-    <string name="abort_merge_failed">Abort Merge failed!</string>
-    <string name="aborting_merge">Aborting Merge</string>
-    <string name="continue_merging">Continue Merging</string>
+    <string name="abort_merge_failed">Abort Merge failed</string>
+    <string name="aborting_merge">Aborting Merge…</string>
+    <string name="continue_merging">Continue Merging…</string>
     <string name="abort_merge">Abort Merge</string>
-    <string name="abort_merge_notice_text">Will try restore repo files to before merge state, are you sure?</string>
+    <string name="abort_merge_notice_text">Will try to restore the repository files to the state before the merge. Are you sure?</string>
     <string name="repo">Repo</string>
-    <string name="unlink">UnLink</string>
+    <string name="unlink">Unlink</string>
     <string name="link">Link</string>
     <string name="linked_remotes">Linked Remotes</string>
     <string name="unlinked_remotes">Unlinked Remotes</string>
-    <string name="linked_with">Linked with</string>
     <string name="none">None</string>
     <string name="create_link">Create Link</string>
     <string name="unlink_all_ask_text">Will unlink all remotes with current credential, are you sure?</string>
@@ -280,13 +276,10 @@
     <string name="checkout_remote_branch">Checkout remote branch</string>
     <string name="create_local_branch">Create local branch</string>
     <!-- 翻成中文：“将会和以下分支合并” ，冒号，后面接分支名 -->
-    <string name="will_merge">Will merge</string>
+<!--    <string name="will_merge">Will merge</string>-->
     <string name="merge_failed_src_and_target_same">Merge failed: src and target same!</string>
     <string name="merge_success">Merge success</string>
-    <string name="into">into</string>
-    <string name="and">and</string>
     <string name="already_up_to_date">Already up-to-date</string>
-    <string name="merge_failed_has_conflicts">Merge failed:has conflicts!</string>
     <string name="set_upstream_success">Set upstream success</string>
     <string name="select_remote">Select Remote</string>
     <string name="set_upstream_branch_name">Set upstream branch name</string>
@@ -306,7 +299,6 @@
     <string name="del_upstream_branch_err_operation_abort">Delete upstream branch err! operation abort!</string>
     <string name="del_remote_branch_err_operation_abort">Delete remote branch err! operation abort!</string>
     <string name="query_remote_error">Query remote error!</string>
-    <string name="push_del_upstream_branch_to_remote_failed">Push delete upstream to remote failed!</string>
     <string name="del_upstream_success">Delete upstream success</string>
     <string name="del_local_branch_success">Delete local branch success!</string>
     <string name="del_upstream_failed_upstream_is_invalid">Delete upstream failed! upstream is invalid!</string>
@@ -317,7 +309,6 @@
     <string name="remote_name_is_invalid">Err: Remote name is invalid!</string>
     <string name="push_del_remote_branch_failed">Push:delete remote branch failed!</string>
     <string name="del_remote_branch_success">Delete remote branch success</string>
-    <string name="upstream_is">Upstream is</string>
     <string name="load_more">Load More</string>
     <string name="parent">Parent</string>
     <string name="parents">Parents</string>
@@ -326,9 +317,8 @@
     <string name="view_messages">View Messages</string>
     <string name="recommend">Recommend</string>
     <string name="new_branch">New Branch</string>
-    <string name="warn_detach_head">Warn: detach head is dangerous! only do it if you sure you rly need it!</string>
     <string name="last_commit">Last Commit</string>
-    <string name="no_parent_for_compare">No parent for compare</string>
+    <string name="no_parent_to_compare">No parent to compare</string>
     <string name="compare_to_parent">Compare To Parent</string>
     <string name="file_size_over_limit">File size over limit</string>
     <string name="content_size_over_limit">Content size over limit</string>
@@ -345,18 +335,15 @@
     <string name="fetch_all_are_u_sure">Will fetch all remotes, are you sure?</string>
     <string name="error_msg">Error Msg</string>
     <string name="repo_path_invalid">Repo path is invalid!</string>
-    <string name="err_repo_is_invalid">Err:Repo is invalid!</string>
+    <string name="err_repo_is_invalid">Err: Repo is invalid!</string>
     <string name="name">Name</string>
     <string name="url">Url</string>
     <string name="set_url">Set Url</string>
     <string name="unlink_credential">Unlink Credential</string>
-    <string name="unlink_credential_confirm_text">Will unlink credential with remote, are you sure?\n(ps:If you want to link them again, plz go to \"Credential Manager\" page)</string>
     <string name="fetch_all_success">Fetch all success</string>
-    <string name="set_url_for">Set url for</string>
     <string name="linked_credential">Linked credential</string>
     <string name="open_last">Open Last</string>
     <string name="are_you_sure_to_delete">Are you sure to delete</string>
-    <string name="files_icon">Files Icon</string>
     <string name="remove_from_git">Remove from git</string>
     <string name="will_remove_selected_items_from_git_are_u_sure">Will remove selected items from git, are you sure?</string>
     <string name="will_delete_selected_items_are_u_sure">Will delete selected items, are you sure?</string>
@@ -377,11 +364,11 @@
     <string name="will_export_files_to">Will export files to</string>
     <string name="err_target_is_file_but_expect_dir">err:target is a file but expect dir!</string>
     <string name="require_import_files_list_is_empty">Require import files list is empty!</string>
-    <string name="import_files">Import</string>
+    <string name="import_str">Import</string>
     <string name="import_has_err">Import has err</string>
     <string name="import_success">Import success</string>
     <string name="import_failed">Import failed</string>
-    <string name="you_can_click_here_copy_err_msg">You can click HERE copy err msg to clipboard</string>
+    <string name="you_can_click_here_copy_err_msg">You can click HERE to copy err msg</string>
     <string name="err_msg">err msg</string>
     <string name="file_not_found">File Not Found!</string>
     <string name="do_you_want_save_before_close_file">Do you want to save before close file?</string>
@@ -389,7 +376,7 @@
     <string name="no_items_for_shown">No items for shown</string>
     <string name="index_clean">Index clean</string>
     <string name="work_tree_clean">Worktree clean</string>
-    <string name="index_not_clean">Index Not Clean</string>
+    <string name="index_dirty">Index Dirty</string>
     <string name="local_ahead_upstream">Local ahead upstream</string>
     <string name="local_behind_upstream">Local behind upstream</string>
     <string name="already_up_to_date_with_upstream">Already up-to-date with upstream</string>
@@ -401,19 +388,19 @@
     <string name="click_here_to_check_update">Click HERE to Check Update</string>
     <string name="fetch_success">Fetch success</string>
     <string name="hard_reset">Hard Reset</string>
-    <string name="warn_hard_reset_ask">WARN: Hard Reset will make HEAD point to \'Target\', and make worktree content same as \'Target\', means [it will removes all uncommitted changes], and if repo is not in detached HEAD mode, your current branch will point to \'Target\' too, are you sure you want to hard reset?</string>
+<!--    <string name="warn_hard_reset_ask">WARN: Hard Reset will make HEAD point to \'Target\', and make worktree content same as \'Target\', means [it will removes all uncommitted changes], and if repo is not in detached HEAD mode, your current branch will point to \'Target\' too, are you sure you want to hard reset?</string>-->
     <string name="i_am_sure_i_want_hard_reset">I am sure I want to hard reset</string>
     <string name="reset_success">Reset Success</string>
     <string name="target">Target</string>
-    <string name="delete_repo">Delete Repo</string>
+    <string name="delete_repos">Delete Repo(s)</string>
     <string name="closing">Closing…</string>
     <string name="unshallow">Unshallow</string>
     <string name="cancel_clone_depth">Cancel Clone Depth</string>
-    <string name="Unshallowing">Unshallowing…</string>
+    <string name="unshallowing">Unshallowing…</string>
     <string name="unshallow_success_cant_back">note: If unshallow success, You can\'t back shallowed again!</string>
-    <string name="will_do_unshallow_for_repo">Will do unshallow for repo</string>
+    <string name="will_do_unshallow_for_repos">Will do unshallow for repo(s)</string>
     <string name="err_file_doesnt_exist_anymore">Err: File doesn\'t exist anymore!</string>
-    <string name="unstaging">Unstaging</string>
+    <string name="unstaging">Unstaging…</string>
     <string name="will_unstage_are_u_sure">Will Unstage selected items, are you sure?</string>
     <string name="commit_all_index_items_then_sync">Commit all Index items then sync</string>
     <string name="commit_all_index_items">Commit all Index items</string>
@@ -460,7 +447,7 @@
     <string name="error_invalid_commit_hash">error: invalid commit hash</string>
     <string name="add">Add</string>
     <string name="add_a_repo">Add a repo</string>
-    <string name="back_editor_from_external_app_ask_reload">If you edited file with external app, maybe you want to reload file for show modified content, click \'Reload\' for it, or \'No\' if you want to keep current content.</string>
+    <string name="back_editor_from_external_app_ask_reload">If you edited the file with external app, you might want to reload it to show modified content</string>
     <string name="reload">Reload</string>
     <string name="go">Go</string>
     <string name="range">Range</string>
@@ -473,7 +460,8 @@
     <string name="file_open_as_type_video">Video</string>
     <string name="file_open_as_type_archive">Archive</string>
     <string name="file_open_as_type_directory">Folder</string>
-    <string name="file_open_as_type_any">Other</string>
+    <string name="file_open_as_type_other">Other</string>
+    <string name="file_open_as_type_any">Any</string>
     <string name="file_open_as_by_extension">By Extension</string>
     <string name="open_in_editor">Open in Editor</string>
     <string name="open_as">Open As</string>
@@ -495,14 +483,14 @@
     <string name="upstream_saved">Upstream Saved</string>
     <string name="save_and_sync">Save and Sync</string>
     <string name="set_upstream_and_sync">Set Upstream and Sync</string>
-    <string name="text_for">for</string>
     <string name="credential">Credential</string>
     <string name="remote_info">Remote Info</string>
     <string name="set_branch">Set Branch</string>
     <string name="err_resolve_remote_failed">Err:resolve remote failed</string>
     <string name="all">All</string>
     <string name="specify">Specify</string>
-    <string name="branches_split_by">Branches split by</string>
+<!--    e.g. branch split by ','-->
+    <string name="branches_split_by_sign">Branches split by \'ph_a3f241dc_1\'</string>
     <string name="branches_placeholder">branch1,branch2,etc</string>
     <string name="err_branch_list_is_empty">err:branch list is empty!</string>
     <string name="err_branches_str_is_invalid">err:branches str is invalid!</string>
@@ -510,7 +498,7 @@
     <string name="set_fetch_refspecs">Set Fetch Refspecs</string>
     <string name="set_branches_for_fetch">Set branches for Fetch</string>
     <string name="branch_mode">Branch Mode</string>
-    <string name="branch_mode_note">note: chose \'All\' for fetch all branches, or specify a custom branches list for fetching</string>
+    <string name="branch_mode_note">Download all branches or specify a list</string>
     <string name="set_branch_mode">Set Branch Mode</string>
     <string name="fetching_all">Fetching All…</string>
     <string name="pull_err">Pull Err</string>
@@ -592,7 +580,7 @@
     <string name="new_tag">New Tag</string>
     <string name="err_must_set_username_and_email_before_create_annotate_tag">Err: You must set \'username\' and \'email\' for Repo before create \'Annotate Tag\'</string>
     <string name="create_tag">Create Tag</string>
-    <string name="deleting">Deleting</string>
+    <string name="deleting">Deleting…</string>
     <string name="filter">Filter</string>
     <string name="tag">Tag</string>
     <string name="better_compare">Better Compare</string>
@@ -616,7 +604,7 @@
     <string name="note_as_default_remote_will_not_override_local_tags">note: as default, Remote [will not override] Local same name Tags, except you checked \'force\'</string>
     <string name="note_as_default_local_will_override_remote_tags">note: as default, for lightweight Tags, Local [will override] Remote if fastforwardable</string>
     <string name="load_to_end">Load To End</string>
-    <string name="creating">Creating</string>
+    <string name="creating">Creating…</string>
     <string name="new_oid">New Oid</string>
     <string name="old_oid">Old Oid</string>
     <string name="stash_id">Stash ID</string>
@@ -665,13 +653,11 @@
     <string name="repo_not_in_rebasing">Repo not in rebasing</string>
     <string name="repo_not_in_cherrypick">Repo not in cherrypick</string>
     <string name="no_cherrypick_head_found">No Cherrypick HEAD found!</string>
-    <string name="err_has_conflicts_rebase_failed">err:has conflicts, rebase failed!</string>
     <string name="rebase_current_onto">Rebase Current onto</string>
     <string name="rebase_branch1_onto_branch2">Rebase ph_a3f241dc_1 onto ph_a3f241dc_2</string>
     <string name="rebase">Rebase</string>
-    <string name="will_rebase">Will Rebase</string>
-    <string name="onto">onto</string>
-    <string name="rebasing">Rebasing</string>
+<!--    <string name="will_rebase">Will Rebase</string>-->
+    <string name="rebasing">Rebasing…</string>
     <string name="rebase_success">Rebase Success</string>
     <string name="merge_continue">Merge Continue</string>
     <string name="merge_abort">Merge Abort</string>
@@ -690,7 +676,7 @@
     <string name="overwrite_author">Overwrite Author</string>
     <string name="last_commit_msg">last commit msg</string>
     <string name="origin_commit_msg">origin commit msg</string>
-    <string name="will_use_your_username_and_email_overwrite_old_commit_s_author_info">Will use your username and email overwrite old commit\'s author info</string>
+    <string name="will_use_your_username_and_email_overwrite_original_commits_author_info">Will use your username and email overwrite original commit\'s author info</string>
     <string name="soft">Soft</string>
     <string name="mixed">mixed</string>
     <string name="hard">Hard</string>
@@ -713,6 +699,7 @@
     <string name="push_force_failed">Push(Force) Failed</string>
     <string name="push_force_success">Push(Force) Success</string>
     <string name="compare_to_head">Compare to HEAD</string>
+    <!-- due to "Compare to HEAD" is too long, but in some menu items, better use a shorter word for display well, so, I use "Diff to HEAD" instead of it -->
     <string name="diff_to_head">Diff To HEAD</string>
     <string name="cherrypick">Cherrypick</string>
     <string name="create_patch">Create Patch</string>
@@ -730,7 +717,7 @@
     <string name="cherrypick_aborted">Cherrypick Aborted</string>
     <string name="cherrypick_continue_err">Cherrypick Continue Err</string>
     <string name="creating_patch">Creating Patch…</string>
-    <string name="will_create_patch_of_selected_files_are_you_sure">will create patch of selected files, are you sure?</string>
+    <string name="will_create_patch_for_selected_files_are_you_sure">will create patch for selected files, are you sure?</string>
     <string name="copy_path">Copy Path</string>
     <string name="committer">Committer</string>
     <string name="apply_as_patch">Apply as Patch</string>
@@ -746,16 +733,15 @@
     <string name="invalid_path">invalid path</string>
     <string name="path">Path</string>
     <string name="overwrite_if_exist">Overwrite If Exist</string>
-    <string name="will_overwrite_if_branch_already_exists">will overwrite if branch already exists</string>
+    <string name="will_overwrite_if_branch_already_exists">Will overwrite if branch already exists</string>
     <string name="just_checkout">Just Checkout</string>
     <string name="checkout_new">Checkout New</string>
     <string name="checkout_old">Checkout Old</string>
     <string name="reset_new">Reset New</string>
     <string name="reset_old">Reset Old</string>
     <string name="invalid_oid">invalid oid</string>
-    <string name="export_path_ph1_you_can_go_to_files_page_found_this_file">export path: ph_a3f241dc_1 \n\n you can go to Files page found this file</string>
+    <string name="export_path_ph1_you_can_go_to_files_page_found_this_file">Export path: ph_a3f241dc_1\n\nYou can go to Files page to found the file</string>
     <string name="full_name">Full Name</string>
-    <string name="will_show_differences_of_left_to_right">will show differences of \'Left\' to \'Right\'</string>
     <string name="left">Left</string>
     <string name="right">Right</string>
     <string name="err_remote_list_is_empty">err: Remote list is empty</string>
@@ -806,5 +792,535 @@
 
 <!--    eg: "Size: 2MB" -->
     <string name="size_n">Size: ph_a3f241dc_1</string>
+    <string name="report_bugs">Report Bugs</string>
+    <string name="source_code">Source Code</string>
+    <string name="internal_storage">Internal Storage</string>
+    <string name="trash_bin_icon_for_delete_item">Trash Bin icon for delete item</string>
+    <string name="cant_delete_internal_storage">Can\'t delete internal storage</string>
+    <string name="three_dots_icon_for_add_storage_path">Three dots icon for add storage path</string>
+    <string name="add_storage_path">Add Storage Path</string>
+    <string name="storage_path">Storage Path</string>
+    <string name="eg_storage_emulate_0_repos">eg: /storage/emulated/0/repos</string>
+    <string name="choose">Choose</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="please_grant_permission_before_you_add_a_storage_path">Please Grant Permission before you add a Storage Path</string>
+    <string name="cross_icon_for_choose_folder">Cross icon for choose folder</string>
+    <string name="please_go_to_system_settings_allow_manage_storage">Please go to System Settings allow Manage Storage</string>
+    <string name="storage">Storage</string>
+    <string name="cant_read_path">Can\'t read path</string>
+    <string name="import_repo">Import Repo</string>
+    <string name="please_grant_permission_before_import_repo">Please grant permission before import repo</string>
+    <string name="the_path_is_a_repos_parent_dir">The Path is a Repos Parent Dir</string>
+    <string name="will_scan_repos_under_this_folder">will scan repos under this folder</string>
+    <string name="path_is_not_a_dir">path is not a dir</string>
+<!--    eg: 10 imported-->
+    <string name="n_imported">ph_a3f241dc_1 imported</string>
+    <string name="three_dots_icon_for_choose_folder">Three dots icon for choose folder</string>
+    <string name="rename_repo">Rename Repo</string>
+    <string name="new_name">New Name</string>
+    <string name="name_has_illegal_chars">name has illegal chars</string>
+    <string name="renaming">Renaming…</string>
+    <string name="import_as_repo">Import As Repo</string>
+    <string name="no_dir_selected">No dir selected</string>
+    <string name="paths_are_repo_parent_dir">Paths are repo parent dir</string>
+    <string name="will_scan_repos_under_folders">will scan repos under folders</string>
+    <string name="path_copied">Path copied</string>
+    <string name="external_storage">External Storage</string>
+    <string name="err_read_folder_failed">err: read folder failed</string>
+    <string name="current_dir_doesnt_exist_anymore">Current dir doesn\'t exist anymore</string>
+    <string name="first_line">First Line</string>
+    <string name="last_line">Last Line</string>
+    <string name="compare_left_to_right">Compare \'Left\' to \'Right\'</string>
 
+<!--    the suffix "_str" for avoid conflict with android reserved keyword-->
+    <string name="selected_str">Selected</string>
+    <string name="path_under_repo">Path Under Repo</string>
+    <string name="submodules">Submodules</string>
+    <string name="cloned">Cloned</string>
+    <string name="not_cloned">Not Cloned</string>
+    <string name="will_clone_selected_submodules_are_you_sure">Will clone selected submodules, are you sure?</string>
+    <string name="re_clone">Re-Clone</string>
+    <string name="re_clone_submodules_warning_text">Will delete submodules files on disk, then re-clone them again</string>
+    <string name="recursive">Recursive</string>
+    <string name="update">Update</string>
+    <string name="recursive_clone_submodule_nested_loop_warn">WARN: Be careful! if your repo contains nested-loops, it will be infinite clone until your device no more storage space!!</string>
+    <string name="recursive_update_submodule_nested_loop_warn">WARN: Be careful! please make sure your repo doesn\'t contains nested-loops!!</string>
+    <string name="no_submodules_found">No Submodules Found</string>
+    <string name="full_path">Full Path</string>
+    <string name="checkout_to_recorded_commit">Checkout To Recorded Commit</string>
+    <string name="import_to_repos">Import to Repos</string>
+    <string name="update_config">Update Config</string>
+    <string name="init_repo">Init Repo</string>
+    <string name="restore_dot_git_file">Restore .git file</string>
+    <string name="copy_full_path">Copy Full Path</string>
+    <string name="will_sync_info_from_gitmodules_to_selected_configs">Will sync info from .gitmodules to selected configs</string>
+    <string name="submodule">Submodule</string>
+    <string name="updating">Updating…</string>
+    <string name="resolve_submodule_failed">resolve submodule failed</string>
+    <string name="sync_configs">Sync Configs</string>
+    <string name="del_config">Del Config</string>
+    <string name="del_files">Del Files</string>
+    <string name="submodule_del_config_info_note">will delete submodule\'s info from \'.gitmodules\' and \'.git/config\' of parent repo</string>
+    <string name="submodule_del_files_on_disk_note">will delete submodule\'s files on disk, include it\'s workdir and .git folder</string>
+    <string name="parent_config">Parent Config</string>
+    <string name="submodule_config">Submodule Config</string>
+    <string name="will_do_init_repo_for_selected_submodules">Will do init repo for selected submodules.</string>
+    <string name="most_time_need_not_do_init_repo_by_yourself">note: most time you need not init repo by yourself, it should did when you cloning repo.</string>
+    <string name="will_try_restore_git_file_for_selected_submodules">Will try restore .git file for selected submodules.</string>
+    <string name="most_time_need_not_restore_dot_git_file_by_yourself">note: most time you need not restore .git file by yourself, it should auto restore when need but lost.</string>
+    <string name="restoring">Restoring…</string>
+    <string name="go_parent">Go Parent</string>
+    <string name="will_import_selected_submodules_to_repos">Will import selected submodules to Repos, then you can manage them just like manage normal Repos.</string>
+    <string name="submodule_invalid_url_err">err: invalid url, if you deleted submodule, maybe need go to ChangeList to commit changes</string>
+    <string name="ignore">Ignore</string>
+    <string name="will_ignore_selected_files_are_you_sure">Will ignore selected files, are you sure?</string>
+    <string name="edit_ignore_file">Edit Ignore File</string>
+    <string name="will_init_selected_folders_to_git_repos_are_you_sure">Will init selected folders to git repos, are you sure?</string>
+    <string name="n_inited">ph_a3f241dc_1 inited</string>
+    <string name="no_credential_will_be_used">No credential will be used</string>
+    <string name="credential_match_by_domain_note">Will match credential by domain, you can link domain and credential at \'Credential Manager\' page</string>
+    <string name="credential_match_by_domain_note_short">Match credential by domain</string>
+    <string name="reset_to_target">Reset To Target</string>
+    <string name="resetting">Resetting…</string>
+    <string name="done">Done</string>
+    <string name="reload_submodule_note">Will reload selected submodules. \n\nnote: usually you need not do this, except you trust submodules infos are out-of-date on this list.</string>
+    <string name="reloading">Reloading…</string>
+    <string name="diff_to_upstream">Diff To Upstream</string>
+    <string name="upstream_oid_is_invalid">Upstream Oid is invalid</string>
+    <string name="compare_to_upstream">Compare To Upstream</string>
+    <string name="both_are_the_same">Both are the same</string>
+    <string name="match_credential_by_domain">Match Credential By Domain</string>
+    <string name="domains">Domains</string>
+    <string name="domain">Domain</string>
+    <string name="import_repos_link_credential_note">Selected credential will be linked to repo\'s Remotes, usually is \'origin\'</string>
+    <string name="desc">Desc</string>
+    <string name="location">Location</string>
+    <string name="check_only">Check Only</string>
+    <string name="apply_patch_check_note">won\'t actually make changes, just test that the patch applies</string>
+    <string name="submodule_is_dirty_note">Submodule has uncommited changes, you must make it clean before you stage/commit it at parent Repository.\n\nYou can manage submodule by import it to Repos.</string>
+    <string name="submodule_is_dirty_note_short">Submodule has uncommitted changes</string>
+    <string name="show_in_repos">Show In Repos</string>
+    <string name="jump">Jump</string>
+    <string name="dir_not_imported">Dir not imported</string>
+    <string name="go_sub">Go Sub</string>
+    <string name="no_submodule_selected">No submodule selected</string>
+    <string name="will_try_import_selected_dirs_as_repos">Will try import selected dir(s) as repo(s)</string>
+    <string name="donate">Donate</string>
+    <string name="set_page_size">Set Page Size</string>
+    <string name="page_size">Page Size</string>
+    <string name="invalid_number">invalid number</string>
+    <string name="remember">Remember</string>
+    <string name="no_matched_item">No matched item</string>
+    <string name="folder_icon">Folder icon</string>
+    <string name="file_icon">File icon</string>
+    <string name="show_in_changelist">Show In ChangeList</string>
+    <string name="general">General</string>
+    <string name="theme">Theme</string>
+    <string name="auto">Auto</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
+    <string name="require_restart_app">Require Restart App</string>
+    <string name="language">Language</string>
+    <string name="unsupported">Unsupported</string>
+
+
+
+
+
+    <string name="log_level">Log Level</string>
+    <string name="warn">Warn</string>
+    <string name="debug">Debug</string>
+    <string name="verbose">Verbose</string>
+    <string name="edit_cache">Edit Cache</string>
+    <string name="enable">Enable</string>
+    <string name="disable">Disable</string>
+    <string name="file_snapshot">File Snapshot</string>
+    <string name="file_snapshot_desc">Before saving file, create a snapshot for origin file first.</string>
+    <string name="content_snapshot_desc">Before saving file, create a snapshot for editor\'s content first.</string>
+    <string name="content_snapshot">Content Snapshot</string>
+    <string name="diff">Diff</string>
+    <string name="group_content_by_line_num">Group Content By Line Num</string>
+    <string name="clear">Clear</string>
+    <string name="clear_cache">Clear Cache</string>
+    <string name="cleaning">Cleaning…</string>
+    <string name="clean">Clean</string>
+    <string name="file_opened_history">File Opened History</string>
+    <string name="storage_paths">Storage Paths</string>
+    <string name="the_storage_path_are_the_paths_you_chosen_and_added_when_cloning_repo">The storage paths are the paths you chosen and added when cloning a Repository.</string>
+    <string name="this_include_editor_opened_files_history_and_their_last_edited_position">This include editor opened files history and their last edited position</string>
+    <string name="snapshots">Snapshots</string>
+    <string name="file_and_content_snapshots">File and Content Snapshots</string>
+    <string name="log">Log</string>
+    <string name="all_snapshots">All Snapshots</string>
+    <string name="cache">Cache</string>
+    <string name="permissions">Permissions</string>
+    <string name="manage_storage">Manage Storage</string>
+    <string name="if_you_want_to_clone_repo_into_external_storage_this_permission_is_required">If you want to clone repo into external storage, this permission is required.</string>
+    <string name="merge_left_into_right">merge \'ph_a3f241dc_1\' into \'ph_a3f241dc_2\'</string>
+    <string name="rebase_left_onto_right">rebase \'ph_a3f241dc_1\' onto \'ph_a3f241dc_2\'</string>
+    <string name="last_modified">Last Modified</string>
+    <string name="is_merged">Is Merged</string>
+    <string name="not_merged">Not Merged</string>
+    <string name="create_revwalk_failed_oid">create Revwalk failed, oid=ph_a3f241dc_1</string>
+    <string name="parent_repo">Parent Repo</string>
+    <string name="go_to_bottom">Go To Bottom</string>
+    <string name="hide">Hide</string>
+    <string name="prev_filename">Prev: ph_a3f241dc_1</string>
+    <string name="next_filename">Next: ph_a3f241dc_1</string>
+    <string name="invalid_conflict_block">invalid conflict block</string>
+    <string name="accept_both">Accept Both</string>
+    <string name="reject_both">Reject Both</string>
+    <!--    e.g. "will accept ours, and delete lines: 1, 4-10"-->
+    <string name="will_accept_ours_and_delete_lines_line_indexs">will accept ours, and delete lines: ph_a3f241dc_1, ph_a3f241dc_2-ph_a3f241dc_3</string>
+    <!--    e.g. "will accept theirs, and delete lines: 10, 1-4"-->
+    <string name="will_accept_theirs_and_delete_lines_line_indexs">will accept theirs, and delete lines: ph_a3f241dc_1, ph_a3f241dc_2-ph_a3f241dc_3</string>
+    <!--    e.g. "will accept both, and delete lines: 1, 4, 10"-->
+    <string name="will_accept_both_and_delete_lines_line_indexs">will accept both, and delete lines: ph_a3f241dc_1, ph_a3f241dc_2, ph_a3f241dc_3</string>
+    <!--    e.g. "will reject both, and delete lines: 1-10"-->
+    <string name="will_reject_both_and_delete_lines_line_indexs">will reject both, and delete lines: ph_a3f241dc_1-ph_a3f241dc_2</string>
+    <!--    e.g. "2 item(s) will be deleted"-->
+    <string name="n_items_will_be_deleted">ph_a3f241dc_1 item(s) will be deleted</string>
+    <string name="show_navi_buttons">Show Navi Buttons</string>
+    <string name="go_to_top_bottom_buttons">Go to Top/Bottom Buttons</string>
+    <string name="squash">Squash</string>
+    <!--    e.g. Squash commits: abc1234..456abcd (not include the Left commit)-->
+    <string name="squash_commits_not_include_the_left_commit">Squash commits: ph_a3f241dc_1..ph_a3f241dc_2 (not include the Left commit)</string>
+    <string name="if_index_contains_uncommitted_changes_will_commit_as_well">If the Index contains uncommitted changes, will commit them as well</string>
+    <string name="file_is_empty">File is empty</string>
+    <string name="the_file_has_not_changed">The file has not changed</string>
+    <string name="warn_index_is_empty_will_create_a_empty_commit">Warn: Index is empty, will create an empty Commit</string>
+    <string name="size">Size</string>
+    <string name="del">Del</string>
+    <string name="restore">Restore</string>
+    <string name="invalid_line_number">invalid line number</string>
+    <string name="edit_line">Edit Line</string>
+    <!--    e.g. Line at: 123 -->
+    <string name="line_at_n">Line at: ph_a3f241dc_1</string>
+    <string name="new_line_at_n">New Line at: ph_a3f241dc_1</string>
+    <string name="content">Content</string>
+    <!--    insert = prepend -->
+    <string name="insert">Insert</string>
+    <string name="append">Append</string>
+    <string name="note_if_line_number_doesnt_exist_will_append_content_to_the_end_of_the_file">note: if the \'Line Number\' doesn\'t exist, will append content to the end of the file</string>
+    <string name="copy_mode">Copy Mode</string>
+    <string name="show_change_type">Show Change Type</string>
+    <string name="replace">Replace</string>
+    <string name="change_type">Change Type</string>
+    <string name="group_by_line">Group By Line</string>
+    <string name="a_list_icon_lor_filter_commits_by_paths">A list icon lor filter commits by paths</string>
+    <string name="filter_by_paths">Filter By Paths</string>
+    <string name="paths">Paths</string>
+    <string name="filter_commits_which_included_the_paths_leave_empty_for_show_all">Filter commits which included the paths, leave empty for show all</string>
+    <string name="per_line_one_path">per line one path</string>
+    <string name="copy_repo_relative_path">Copy Repo Relative Path</string>
+    <string name="no_repo_found">no repo found</string>
+    <string name="path_not_under_repo">Path not under repo</string>
+    <string name="file_history">File History</string>
+    <string name="err_file_under_git_dir">err: file under \'.git\' dir</string>
+    <string name="plz_import_repo_then_try_again">Plz import repo then try again</string>
+    <string name="entry_id">Entry ID</string>
+    <string name="commit_id">Commit ID</string>
+    <!-- e.g. Target: abcdef12(full or short commit hash) -->
+    <string name="target_ph">Target: ph_a3f241dc_1</string>
+    <string name="diff_to_prev">Diff To Prev</string>
+    <string name="plz_lode_more_then_try_again">plz lode more then try again</string>
+    <string name="no_prev_to_compare">no prev to compare</string>
+    <string name="file_hasnt_history_yet">File hasn\'t history yet</string>
+    <string name="commit_history_is_empty">Commit history is empty</string>
+
+    <!--    e.g. item count: 10-->
+    <string name="item_count_n">item count: ph_a3f241dc_1</string>
+    <!--    e.g. current: 10, all:30 -->
+    <string name="current_n_all_m">current: ph_a3f241dc_1, all: ph_a3f241dc_2</string>
+    <string name="comparing_label">Comparing</string>
+    <string name="loaded_n">loaded: ph_a3f241dc_1</string>
+    <string name="user_info">User Info</string>
+    <string name="local_ahead">Local ahead</string>
+    <string name="local_behind">Local behind</string>
+    <string name="i_input_file_names">I input file name(s)</string>
+    <string name="will_filter_by_file_name_not_by_path">will filter by file name, not by path</string>
+    <string name="file_path">File path</string>
+    <string name="no_difference_found">No difference found</string>
+    <string name="select_compare">Select Compare</string>
+    <string name="compare">Compare</string>
+    <string name="can_t_compare_same_type_lines">Can\'t compare same type lines</string>
+    <string name="compare_to_clipboard">Compare to clipboard</string>
+    <string name="clipboard_is_empty">Clipboard is empty</string>
+    <string name="can_t_compare_empty_line">Can\'t compare empty line</string>
+    <string name="can_t_compare_clipboard_to_context_line">Can\'t compare clipboard to Context line</string>
+    <string name="selected_lines_already_compared">Selected lines already compared</string>
+<!--    ph1 is origin type+line number e.g. add line +12 to compare-->
+    <string name="added_line_for_compare">added line ph_a3f241dc_1 for compare</string>
+<!--    ph1 is origin type + line number, e.g. Compare to +12-->
+    <string name="compare_to_origintype_linenum">Compare to ph_a3f241dc_1</string>
+    <string name="comparing">Comparing…</string>
+    <string name="can_t_compare_both_context_type_lines">Can\'t compare both Context type lines</string>
+    <string name="clear_compare">Clear Compare</string>
+    <string name="username_or_private_key">Username/Private Key</string>
+    <string name="password_or_passphrase">Password/Passphrase</string>
+    <string name="http_https_ssh">http/https/ssh</string>
+    <string name="ssh_credential">ssh Credential</string>
+    <string name="edit_known_hosts_file">Edit \'known_hosts\' file</string>
+    <string name="reset_known_hosts">Reset \'known_hosts\'</string>
+    <string name="allow_unknown_hosts">Allow Unknown Hosts</string>
+    <string name="confirm">Confirm</string>
+    <string name="will_reset_the_unknown_hosts_file">will reset the \'known_hosts\' file</string>
+    <string name="forget_hostkeys">Forget Hostkeys</string>
+    <string name="if_enable_will_allow_unknown_hosts_as_default_else_will_ask">If enable, will allow unknown hosts as default, else will ask</string>
+    <string name="after_forgetting_the_host_keys_may_ask_confirm_again">After forgetting the host keys, when you connect to a host with ssh again, it may ask you to confirm again.</string>
+    <string name="unknown_host">Unknown Host</string>
+    <string name="allow">Allow</string>
+    <string name="reject">Reject</string>
+    <string name="trying_connect_unknown_host_only_allow_if_trust">Trying to connect to an unknown host. Please review the fingerprints and only allow if you trust the host.</string>
+    <string name="i_trust_the_host">I trust the host</string>
+    <string name="aborted_unknown_host">aborted: unknown host</string>
+    <string name="operation_aborted_after_allowing_maybe_retry">note: Your operation already aborted, after allowing the connection, you may want to retry</string>
+    <string name="forget">Forget</string>
+    <string name="allowed_plz_re_try_clone_fetch_push">Allowed, plz re-try Clone/Fetch/Push</string>
+    <string name="http_s_credential">http(s) Credential</string>
+    <string name="http_s">http(s)</string>
+    <string name="fetch_url">Fetch Url</string>
+<!--  the placeholder is remote name,   e.g. Fetching origin...-->
+    <string name="fetching_remotename">Fetching ph_a3f241dc_1…</string>
+    <string name="repo_state">Repo State</string>
+    <string name="edited">Edited</string>
+    <string name="err_read_path_failed">err: read path failed</string>
+    <string name="view_and_sort">View And Sort</string>
+    <string name="ascend">Ascend</string>
+    <string name="folder_first">Folder First</string>
+    <string name="only_for_this_folder">Only For This Folder</string>
+<!--    e.g. Folder: 5, File: 3 -->
+    <string name="folder_n_file_m">Folder: ph_a3f241dc_1, File: ph_a3f241dc_2</string>
+    <string name="recent_files">Recent Files</string>
+    <string name="recent_files_is_empty">Recent files is empty!</string>
+    <string name="cleared">Cleared</string>
+    <string name="clear_recent_files_confirm_text">Will clear the recent files list and forget their last edited positions</string>
+    <string name="match_by_words">Match By Words</string>
+    <string name="cache_your_input_into_editcache_dir_path">Cache your input into \'ph_a3f241dc_1\'</string>
+    <string name="switch_reference">Switch Reference</string>
+    <string name="switch_item">Switch Item</string>
+<!--    e.g. Count: 10-->
+    <string name="count_n">Count: ph_a3f241dc_1</string>
+    <string name="reference">Reference</string>
+    <string name="faq">FAQ</string>
+    <string name="master_password">Master Password</string>
+    <string name="set_master_password">Set Master Password</string>
+    <string name="i_forgot_my_master_password">I forgot my master password</string>
+    <string name="recommend_go_to_settings_screen_set_a_master_password">NOTE: I recommend every user go to Settings screen set a master password, it will used to encrypt your credentials, if you don\'t set it, password/passphrase of your credentials will encrypt by a public password, is not enough safe.</string>
+    <string name="old_password">Old Password</string>
+    <string name="new_password">New Password</string>
+    <string name="clear_master_password_confirm">If clear your master password, you will not be able to access password/passphrase of your credentials before you encrypted with old master password, until you update them</string>
+    <string name="clear_master_password_ok_text">Clear</string>
+    <string name="wrong_password">Wrong Password</string>
+    <string name="require_old_password">require old password</string>
+    <string name="leave_new_password_empty_if_dont_want_to_use_master_password">leave new password empty and save if you don\'t want to use master password anymore</string>
+    <string name="result">Result</string>
+    <string name="below_credential_password_update_failed">Update password/passphrase for below credentials failed, you should re-input password/passphrase for them, else these credentials will not be able to use:</string>
+    <string name="old_and_new_passwords_are_the_same">old and new passwords are the same</string>
+    <string name="clear_master_password">Clear Master Password</string>
+    <string name="if_set_will_require_master_password_when_launching_app">Master password used to protect password/passphrase of your credentials. If set, will require input master password when launching app</string>
+    <string name="please_make_sure_you_can_remember_your_master_password">Please make sure you can remember your master password!!!</string>
+<!--    检查凭据是否需要迁移-->
+<!--    checking credentials need migration or needn't-->
+    <string name="checking_creds_migration">Checking creds migration…</string>
+    <string name="updating_master_password">Updating master password…</string>
+    <string name="verifying">Verifying…</string>
+    <string name="input_your_master_password">Input Your Master Password</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="updated">Updated</string>
+    <string name="don_t_touch_the_password_passphrase_if_you_don_t_want_to_update_it">Don\'t touch the password/passphrase if you don\'t want to update it</string>
+    <string name="an_opened_eye">An opened eye</string>
+    <string name="a_closed_eye">A closed eye</string>
+    <string name="push_canceled_by_commit_failed">Push canceled by commit failed</string>
+    <string name="sync_canceled_by_commit_failed">Sync canceled by commit failed</string>
+
+
+    <string name="timezone">TimeZone</string>
+    <string name="timezone_offset_in_minutes_when_viewing_commits">TimeZone offset in minutes when viewing commits</string>
+    <string name="default_str">Default</string>
+    <string name="offset_in_minutes">offset in minutes</string>
+    <string name="get_system_timezone_offset">Get system timezone offset</string>
+    <string name="leave_empty_to_use_default_timezone_offset_from_commits">Leave empty to use default timezone offset from commits</string>
+    <string name="commits">Commits</string>
+    <string name="timezone_offset_example">e.g. -480 is UTC-8, +480 or 480 is UTC+8, +330 or 330 is UTC+5:30</string>
+    <string name="follow_system">Follow System</string>
+    <string name="use_offset_from_commits">Use offset from commits</string>
+    <string name="timezone_when_viewing_commits">TimeZone when viewing commits</string>
+    <string name="set_timezone_leave_empty_note">You can leave the offset empty, then: when viewing GitObject(commits/tags/reflogs/etc), will read timezone from them; when creating GitObject, will save system timezone into them</string>
+    <string name="default_timezone_rule_description">When viewing GitObject, read timezone from it; when creating GitObject, save system timezone into it</string>
+
+
+<!--    new at 20250102-->
+    <string name="undo">Undo</string>
+    <string name="redo">Redo</string>
+    <string name="show_undo_redo">Show Undo/Redo</string>
+
+<!--    new at 20250127-->
+    <string name="encode_new_password_failed_plz_try_another_one">encode new password failed, plz try another one</string>
+    <string name="stop">Stop</string>
+    <string name="service">Service</string>
+    <string name="launch_on_app_startup">Launch On App Startup</string>
+    <string name="launch_on_system_startup">Launch On System Startup</string>
+    <string name="port">Port</string>
+    <string name="err_notification">Err Notification</string>
+    <string name="success_notification">Success Notification</string>
+    <string name="running">Running</string>
+    <string name="stopped">Stopped</string>
+    <string name="err_port_invalid">err: Port Invalid</string>
+    <string name="copy_api">Copy Api</string>
+    <string name="test">Test</string>
+    <string name="failed">Failed</string>
+    <string name="host">Host</string>
+    <string name="err_host_invalid">err: Host Invalid</string>
+    <string name="tokens">Tokens</string>
+    <string name="per_line_one_token">Per line one token</string>
+    <string name="if_empty_will_reject_all_requests">If empty, will reject all requests</string>
+    <string name="ip_whitelist">ip Whitelist</string>
+    <string name="per_line_one_ip">Per line one ip</string>
+    <string name="use_asterisk_to_match_all_ips">use \'*\' to match all ips</string>
+    <string name="document">Document</string>
+    <string name="list_of_tokens">List of tokens</string>
+    <string name="list_of_ips">List of ips</string>
+    <string name="api">Api</string>
+    <string name="progress_notification">Progress Notification</string>
+    <string name="do_you_want_to_edit_the_file_or_import_it">Do you want to edit the file or import it?</string>
+    <string name="ask">Ask</string>
+    <string name="accessibility_service_description">For auto pull/push when enter/exit specified apps</string>
+    <string name="require_restart_service">Require restart service</string>
+    <string name="automation">Automation</string>
+    <string name="please_find_and_enable_disable_service_for_app">Please find and enable/disable service for App</string>
+    <string name="unknown_state">Unknown State</string>
+    <string name="app_list">App List</string>
+    <string name="add_an_app">Add an app</string>
+    <string name="unselected">Unselected</string>
+    <string name="linked_repos">Linked Repos</string>
+    <string name="unlinked_repos">Unlinked Repos</string>
+    <string name="will_auto_pull_push_linked_repos_when_selected_apps_enter_exit">Will auto pull/push linked repos when selected apps enter/exit</string>
+    <string name="app_info">App Info</string>
+    <string name="intro_go_to_app_info_to_allow_autostart_and_disable_battery_optimization">Maybe you want to go to App Info to \'Allow Autostart\' and \'Disable Battery Optimization\'</string>
+    <string name="set_upstream_err_remote_is_invalid">Set upstream err, remote is invalid</string>
+    <string name="welcome_please_set_git_username_and_email">Welcome! Please set git username and email! This is necessary for create commit!</string>
+    <string name="click_to_switch_selected_unselected_long_click_to_config_linked_repos">Click to switch Selected/Unselected, Long-Click a selected App to config linked Repos</string>
+    <string name="cut">Cut</string>
+    <string name="if_unable_choose_a_path_just_copy_paste_instead">If unable to choose a path, maybe your system removed the file picker, just copy the path from the \'Files\' and paste it to here instead</string>
+
+
+    <!-- new at 20250215 -->
+    <string name="dev_mode">Dev Mode</string>
+
+    <!-- new at 20250216 -->
+    <string name="commit_all">Commit All</string>
+
+    <!-- new at 20250227 -->
+    <string name="saf_mode">SAF Mode</string>
+    <string name="saf_mode_note">SAF mode offers better compatibility and support for Termux, but it has bad performance</string>
+    <string name="import_export">Import/Export</string>
+    <string name="import_files">Import Files</string>
+    <string name="export_files">Export Files</string>
+    <string name="select_path">Select Path</string>
+    <string name="overwrite_files_note">If checked, will remove folders/files that already exist before copying; otherwise, will skip them.</string>
+    <string name="err_documentfile_is_null">err: DocumentFile is null</string>
+    <string name="folder_is_empty">Folder is empty</string>
+
+
+    <!-- new at 20250302 -->
+    <string name="aborting">Aborting…</string>
+    <string name="abort">Abort</string>
+
+    <!-- new at 20250315 -->
+    <string name="home">Home</string>
+    <string name="preview">Preview</string>
+    <string name="go_back">Go Back</string>
+    <string name="go_forward">Go Forward</string>
+
+    <!-- new at 20250316 -->
+    <!-- if a file in the association list, will use internal Editor open it -->
+    <string name="file_association">File Association</string>
+    <!-- The "pattern" is regex pattern to match string, the "wildcard" is "*" of "*.txt", use to match string too -->
+    <string name="file_association_note">Per line one pattern, support wildcard</string>
+    <string name="file_name_patterns">File Name Patterns</string>
+    <!-- edit the config file -->
+    <string name="edit_config">Edit Config</string>
+
+    <!-- new at 20250327 -->
+    <!-- this interval is time interval, e.g. set to 5, then in 5 seconds, if users re-open app, will not do a pull again -->
+    <string name="pull_interval">Pull Interval</string>
+    <!-- this is push delay in seconds, e.g. set to 5, then will do push after users leave the app 5 seconds -->
+    <string name="push_delay">Push Delay</string>
+    <string name="pull_interval_in_seconds">Pull Interval in seconds</string>
+    <string name="push_delay_in_seconds">Push Delay in seconds</string>
+    <string name="pull_interval_note">Time interval for pull. e.g. if set to 5, the app will not do pull again if reopened within 5 seconds; if set to -1, will disable pull.</string>
+    <string name="push_delay_note">Time delay for push. e.g. if set to 5, a push will execute after leaving the app for 5 seconds; if set to -1 will disable push.</string>
+
+    <!-- new at 20250405 -->
+    <string name="load_all">Load All</string>
+
+    <!-- new at 20250420 -->
+    <string name="link_all">Link All</string>
+
+    <!-- new at 20250427 -->
+    <string name="append_a_line">Append a line</string>
+    <string name="restart_app">Restart App</string>
+
+    <!-- new at 20250501 -->
+    <string name="expand_all">Expand All</string>
+    <string name="collapse_all">Collapse All</string>
+    <string name="patch_mode">Patch Mode</string>
+
+    <!-- new at 20250513 -->
+    <string name="no_commit">No Commit</string>
+    <string name="repo_no_commit_note">Your repo have not any commit yet, please create some files then commit them.</string>
+
+
+    <string name="expected_refspec">Expected Refspec</string>
+    <string name="push_force_with_lease_note">Will only force push when upstream\'s latest commit is the same as expected</string>
+    <string name="checking">Checking…</string>
+    <string name="nodes">Nodes</string>
+    <string name="note_pat_instead_of_password">Note: If you have enabled 2FA, you must use a Personal Access Token instead of the password. The token must have read and write permissions for repository contents and workflows.</string>
+    <string name="graph">Graph</string>
+    <string name="commit_msg_template">Commit Msg Template</string>
+    <string name="leave_empty_to_use_global_settings">Leave empty to use global settings</string>
+    <string name="software_keyboard">Software Keyboard</string>
+    <string name="dynamic_color_scheme">Dynamic Color Scheme</string>
+    <string name="syntax_highlighting">Syntax Highlighting</string>
+    <string name="use_system_fonts">Use System Fonts</string>
+
+    <string name="tab_size">Tab Size</string>
+<!--    if you are translating now, must keep the "CDATA" block, the result should like: <![CDATA[Your Translation at Here]]> -->
+    <string name="set_tab_size_note"><![CDATA[<=0 to use real tab, else will replace tab to spaces]]></string>
+    <string name="symbol_pair">Symbol Pair</string>
+    <string name="focus_line">Focus Line</string>
+    <string name="ssl_verify">SSL Verify</string>
+    <string name="import_ssl_certs">Import SSL Certs</string>
+    <string name="manage_ssl_certs">Manage SSL Certs</string>
+    <string name="import_ssl_certs_intro_text">Just copy and paste your certs to \'AppData://cert-user\', then restart app.</string>
+    <string name="url_links">Links</string>
+    <string name="contributors">Contributors</string>
+    <string name="encoding">Encoding</string>
+    <string name="convert_encoding">Convert Encoding</string>
+    <string name="pull_with_rebase">Pull with Rebase</string>
+
+    <string name="pull_merge">Pull(Merge)</string>
+    <string name="pull_merge_success">Pull(Merge) Success</string>
+    <string name="pull_merge_failed">Pull(Merge) Failed</string>
+    <string name="sync_merge">Sync(Merge)</string>
+    <string name="sync_merge_success">Sync(Merge) Success</string>
+    <string name="sync_merge_failed">Sync(Merge) Failed</string>
+    <string name="sync_rebase_success">Sync(Rebase) Success</string>
+
+    <string name="activity_not_found">No application found to handle this action</string>
+    <string name="share">Share</string>
+    <string name="line_break">Line Break</string>
+    <string name="async">Async</string>
+
+    <string name="progress_notification_auto_dismiss">Notification Auto Dismiss</string>
+    <string name="progress_notification_auto_dismiss_desc">Notifications will be dismissed automatically after being shown</string>
+    <string name="pull_force">Pull(Force)</string>
+    <string name="force_pull_desc">Will fetch then hard reset local branch to upstream</string>
+    <string name="force_pulling">Force Pulling…</string>
+    <string name="pull_force_success">Pull(Force) Success</string>
+    <string name="pull_force_failed">Pull(Force) Failed</string>
+    <string name="lfs">LFS</string>
+    <string name="commit_on_push">Commit on Push</string>
 </resources>

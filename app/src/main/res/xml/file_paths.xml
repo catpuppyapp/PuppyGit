@@ -1,4 +1,19 @@
-<paths xmlns:android="http://schemas.android.com/apk/res/android">
-<!--    share "/storage/emulated/0/Android/data/com.catpuppyapp.puppygit.play.pro/files"-->
-    <external-files-path name="external1" path="/" />
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+<!--    20250505 重大修改：实现支持在我的app内open as文件再选择用我的app打开时解析为绝对路径的功能时，感觉处理三个路径非常麻烦，所以改成只允许root了-->
+
+
+<!--    注意：全部可用的external path可查看FileProvider源码-->
+<!--    注意：path="/" 或 path="."实际上没区别，因为path会和 xml tag代表的路径用File对象进行File(base, path)进行拼接，所以/和.对应的都是当前xml tag代表的目录的根目录-->
+
+
+<!--    share "/storage/emulated/0/Android/data/com.catpuppyapp.puppygit.play.pro/files" , path returned by api `context.getExternalFilesDir(null)`-->
+<!--    <external-files-path name="internal" path="/" />-->
+
+<!--    share "/storage/emulated/0" , path returned by api `Environment.getExternalStorageDirectory()`-->
+<!--    <external-path name="external" path="/" />-->
+
+<!--    root，匹配所有路径，直接梭哈，不用管那个鸟黄色警号 "not allowed here" ，其实能用 -->
+    <root-path name="root" path="/" />
+
 </paths>

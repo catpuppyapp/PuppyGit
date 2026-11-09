@@ -8,10 +8,11 @@
 #define INCLUDE_git_email_h__
 
 #include "common.h"
+#include "diff.h"
 
 /**
  * @file git2/email.h
- * @brief Git email formatting and application routines.
+ * @brief Produce email-ready patches
  * @ingroup Git
  * @{
  */
@@ -70,11 +71,14 @@ typedef struct {
 	size_t reroll_number;
 } git_email_create_options;
 
-/*
+/** Current version for the `git_email_create_options` structure */
+#define GIT_EMAIL_CREATE_OPTIONS_VERSION 1
+
+/** Static constructor for `git_email_create_options`
+ *
  * By default, our options include rename detection and binary
  * diffs to match `git format-patch`.
  */
-#define GIT_EMAIL_CREATE_OPTIONS_VERSION 1
 #define GIT_EMAIL_CREATE_OPTIONS_INIT \
 { \
 	GIT_EMAIL_CREATE_OPTIONS_VERSION, \
@@ -85,43 +89,19 @@ typedef struct {
 
 /**
  * Create a diff for a commit in mbox format for sending via email.
- *
- * @param out buffer to store the e-mail patch in
- * @param diff the changes to include in the email
- * @param patch_idx the patch index
- * @param patch_count the total number of patches that will be included
- * @param commit_id the commit id for this change
- * @param summary the commit message for this change
- * @param body optional text to include above the diffstat
- * @param author the person who authored this commit
- * @param opts email creation options
- */
-GIT_EXTERN(int) git_email_create_from_diff(
-	git_buf *out,
-	git_diff *diff,
-	size_t patch_idx,
-	size_t patch_count,
-	const git_oid *commit_id,
-	const char *summary,
-	const char *body,
-	const git_signature *author,
-	const git_email_create_options *opts);
-
-/**
- * Create a diff for a commit in mbox format for sending via email.
  * The commit must not be a merge commit.
  *
  * @param out buffer to store the e-mail patch in
  * @param commit commit to create a patch for
  * @param opts email creation options
+ * @return 0 or an error code
  */
 GIT_EXTERN(int) git_email_create_from_commit(
 	git_buf *out,
 	git_commit *commit,
 	const git_email_create_options *opts);
 
-GIT_END_DECL
-
 /** @} */
+GIT_END_DECL
 
 #endif

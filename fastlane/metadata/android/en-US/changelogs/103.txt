@@ -1,0 +1,11 @@
+- fix: sometimes commit item not update after reset
+- add Thanks list in About screen
+- support fetch remotes at Branches screen
+- update depend libs (libgit2 to 1.9.1, openssl to 3.5.0)
+- update UI libs
+- Diff: optimize default match strategy
+- limit file names length of commit msg template
+- improve UI (issue #66)
+- Automation: support set pull interval and push delay for each repo
+- Editor support Ctrl+S/Ctrl+W/Ctrl+F to save/close/find the file
+- Editor support auto reload when file changed by external

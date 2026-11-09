@@ -1,0 +1,2 @@
+- support call http api in sync way
+- support auto dismiss automation service notification (pr #132, thx @jiesou)

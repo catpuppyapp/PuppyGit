@@ -1,0 +1,1 @@
+- support pin repos (issue #141)

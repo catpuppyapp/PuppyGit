@@ -9,7 +9,7 @@ val defaultEncryptor = object : Encryptor {
         return EncryptUtil.encryptString(raw,key)
     }
 
-    override fun decrpyt(encrypted: String, key: String): String {
+    override fun decrypt(encrypted: String, key: String): String {
         if(encrypted.isNullOrEmpty()) {
             return encrypted
         }
@@ -23,3 +23,4 @@ val encryptor_ver_1 = defaultEncryptor
 val encryptor_ver_2 = defaultEncryptor
 val encryptor_ver_3 = defaultEncryptor
 val encryptor_ver_4 = defaultEncryptor
+val encryptor_ver_5 = defaultEncryptor

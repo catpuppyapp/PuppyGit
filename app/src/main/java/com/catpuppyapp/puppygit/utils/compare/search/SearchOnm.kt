@@ -21,7 +21,7 @@ class SearchOnm: Search() {
      * 注意：在能够匹配的情况下，正向匹配和逆向匹配的结果有可能不同，例如：
      * 在 ababcdefef 中查找 abef ，如果正向匹配，会匹配到第一个ab和ef；若逆向匹配则会匹配到最后一个ef和ab。
      */
-    override fun doSearch(add: CompareParam, del: CompareParam, reverse: Boolean): IndexModifyResult {
+    override fun<T:CharSequence> doSearch(add: CompareParam<T>, del: CompareParam<T>, reverse: Boolean): IndexModifyResult {
         val addList = LinkedList<IndexStringPart>()
         val delList = LinkedList<IndexStringPart>()
 

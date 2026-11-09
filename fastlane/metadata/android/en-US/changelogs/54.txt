@@ -1,0 +1,2 @@
+- indicate repo has uncommitted changes on RepoCard (issue #26)
+- support multi selection on Repos page (issue #27)

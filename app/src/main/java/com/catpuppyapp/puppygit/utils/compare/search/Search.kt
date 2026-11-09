@@ -11,7 +11,7 @@ abstract class Search {
         val INSTANCE_BETTER_MATCH_BUT_SLOW = SearchOnm()  // better for match, but slow
     }
 
-    abstract fun doSearch(add: CompareParam, del: CompareParam, reverse: Boolean): IndexModifyResult
+    abstract fun<T:CharSequence> doSearch(add: CompareParam<T>, del: CompareParam<T>, reverse: Boolean): IndexModifyResult
 
     protected fun getAddListMethod(reverse: Boolean) : (Int, Int, Boolean, LinkedList<IndexStringPart>, IndexStringPart?)-> IndexStringPart? {
         return if(reverse) { start:Int, end:Int, modified:Boolean, list: LinkedList<IndexStringPart>, lastItem: IndexStringPart? ->

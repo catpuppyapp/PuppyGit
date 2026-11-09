@@ -1,26 +1,20 @@
 package com.catpuppyapp.puppygit.compose
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
@@ -30,15 +24,13 @@ import com.catpuppyapp.puppygit.dev.proFeatureEnabled
 import com.catpuppyapp.puppygit.etc.Ret
 import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.style.MyStyleKt
-import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.catpuppyapp.puppygit.utils.Msg
 import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
-import com.catpuppyapp.puppygit.utils.state.StateUtil
 import com.github.git24j.core.Oid
 import com.github.git24j.core.Repository
 
-private val TAG = "CreateBranchDialog"
+private const val TAG = "CreateBranchDialog"
 
 @Composable
 fun CreateBranchDialog(
@@ -56,23 +48,22 @@ fun CreateBranchDialog(
     onFinally:()->Unit, //在 try...catch...finally，finally代码块里的代码
 //    onOk: (branchName:String, baseRefSpec:String, basedHead:Boolean, createByRef:Boolean, needCheckout:Boolean, forceCheckout:Boolean, overwriteIfExist:Boolean) -> Unit,
 ) {
-    val appContext = AppModel.singleInstanceHolder.appContext
+    val activityContext = LocalContext.current
 
-    val repoId=curRepo.id
+    val repoId = curRepo.id
     //文案提示是“基于当前分支xxx（分支名）创建新分支(btw：如果想基于某个提交创建分支，可以去commit记录页面)”，以及强调“如果勾选checkout将立即检出分支，但如果有未提交数据，可能会丢失”
-    val createBranchBasedOn = stringResource(R.string.create_branch_based_on)
 //    val textUnderCheckout = stringResource(R.string.warn_please_commit_your_change_before_checkout_or_merge)
 
 
 
     val optHEAD = 0;
     val optCommit = 1;
-    val selectedOption = StateUtil.getRememberSaveableIntState(initValue = optHEAD)
-    val createMethodList = listOf(appContext.getString(R.string.head), appContext.getString(R.string.commit))
-    val userInputHash = StateUtil.getRememberSaveableState(initValue = "")
+    val selectedOption = rememberSaveable{ mutableIntStateOf(optHEAD) }
+    val createMethodList = listOf(activityContext.getString(R.string.head), activityContext.getString(R.string.commit))
+    val userInputHash = rememberSaveable { mutableStateOf("") }
 
 
-    val overwriteIfExist = StateUtil.getRememberSaveableState(initValue = false)
+    val overwriteIfExist = rememberSaveable { mutableStateOf(false) }
 
     //参数1，要创建的本地分支名；2是否基于HEAD创建分支，3如果不基于HEAD，提供一个引用名
     //只有在basedHead为假的时候，才会使用baseRefSpec
@@ -81,7 +72,7 @@ fun CreateBranchDialog(
         Repository.open(curRepo.fullSavePath).use { repo ->
 
             //最后一个bool值代表是否根据引用创建分支，这个页面都是根据分支创建的，肯定是true
-            val ret = Libgit2Helper.doCreateBranch(repo, repoId, branchNameParam, basedHead, baseRefSpec, createByRef, overwriteIfExist)
+            val ret = Libgit2Helper.doCreateBranch(activityContext, repo, repoId, branchNameParam, basedHead, baseRefSpec, createByRef, overwriteIfExist)
 
             return@doCreateBranch ret
         }
@@ -108,47 +99,27 @@ fun CreateBranchDialog(
     }
     AlertDialog(
         title = {
-            Text(title)
+            DialogTitle(title)
         },
         text = {
-            Column {
-                Row(modifier = Modifier.padding(10.dp)) {
+            ScrollableColumn {
+                SelectionRow {
                     //Create branch based on: your_cur_branch_name
-                    Text(text = createBranchBasedOn+": ")
+                    Text(text = stringResource(R.string.create_branch_based_on) + ":")
+                }
 
-                }
-                for ((k, optext) in createMethodList.withIndex()) {
-                    //k=1,v=text, optionNumAndText="1: text"
-//                        val optionNumAndText = RadioOptionsUtil.formatOptionKeyAndText(k, v)
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = MyStyleKt.RadioOptions.minHeight)
-                            .selectable(
-                                selected = selectedOption.intValue == k,
-                                onClick = {
-                                    //更新选择值
-                                    selectedOption.intValue = k
-                                },
-                                role = Role.RadioButton
-                            )
-                            .padding(horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selectedOption.intValue==k,
-                            onClick = null // null recommended for accessibility with screenreaders
-                        )
-                        Text(
-                            text =optext +( if(k==optHEAD) " ($curBranchName)" else ""),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 10.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                Spacer(Modifier.height(5.dp))
+
+                SingleSelection(
+                    itemList = createMethodList,
+                    selected = {idx, item -> selectedOption.intValue == idx},
+                    text = {idx, item -> item + (if(idx == optHEAD) " ($curBranchName)" else "") },
+                    onClick = {idx, item -> selectedOption.intValue = idx}
+                )
+
                 if(selectedOption.intValue == optCommit) {
+                    Spacer(Modifier.height(5.dp))
+
                     TextField(
                         modifier = Modifier.fillMaxWidth(),
 
@@ -182,16 +153,18 @@ fun CreateBranchDialog(
                     placeholder = {
                     }
                 )
-                Row(modifier = Modifier.padding(5.dp)) {
 
-                }
+                Spacer(modifier = Modifier.height(10.dp))
+
 
                 if(proFeatureEnabled(overwriteExistWhenCreateBranchTestPassed)) {
                     MyCheckBox(text = stringResource(R.string.overwrite_if_exist), value = overwriteIfExist)
                     if(overwriteIfExist.value) {
-                        Row {
-                            Text(
+                        SelectionRow {
+                            DefaultPaddingText(
                                 text = stringResource(R.string.will_overwrite_if_branch_already_exists),
+                                color = MyStyleKt.TextColor.danger(),
+
                             )
                         }
 
@@ -209,9 +182,10 @@ fun CreateBranchDialog(
 
                         //如果勾选了force checkout，警告没提交的内容可能会丢失
                         if(forceCheckout.value) {
-                            Row {
-                                Text(text = stringResource(R.string.warn_force_checkout_will_overwrite_uncommitted_changes),
-                                    color = MyStyleKt.TextColor.danger
+                            SelectionRow {
+                                DefaultPaddingText(
+                                    text = stringResource(R.string.warn_force_checkout_will_overwrite_uncommitted_changes),
+                                    color = MyStyleKt.TextColor.danger()
                                 )
                             }
 
@@ -263,16 +237,16 @@ fun CreateBranchDialog(
                             val createBranchRet = doCreateBranch(branchName, basedHead, actuallyBaseRefSpecCommitHash, createByRef, overwriteIfExist.value)
 
                             if(createBranchRet.hasError()) {  //创建分支失败
-                                throw RuntimeException(appContext.getString(R.string.create_branch_err)+": "+createBranchRet.msg)
+                                throw RuntimeException(activityContext.getString(R.string.create_branch_err)+": "+createBranchRet.msg)
                             }
 
                             //执行到这，分支创建成功，接下来检查是否勾选了checkout，若勾选了则执行checkout
-                            Msg.requireShow(appContext.getString(R.string.create_branch_success))
+                            Msg.requireShow(activityContext.getString(R.string.create_branch_success))
 
 
 
                             if(needCheckout) {
-                                Msg.requireShow(appContext.getString(R.string.checking_out))
+                                Msg.requireShow(activityContext.getString(R.string.checking_out))
                                 //执行checkout
                                 //createBranchRet.data 是创建成功后的分支的完整引用和短引用pair，只要创建分支返回成功，肯定不是null
                                 //第3个参数是当前分支的上游，因为是刚创建的分支，所以上游肯定是空
@@ -282,11 +256,11 @@ fun CreateBranchDialog(
                                 val checkoutRet = doCheckoutBranch(branchName, branchFullRefspec, upstreamBranchShortNameParam, forceCheckout.value)
 
                                 if(checkoutRet.hasError()) {
-                                    throw RuntimeException(appContext.getString(R.string.checkout_error)+": "+checkoutRet.msg)
+                                    throw RuntimeException(activityContext.getString(R.string.checkout_error)+": "+checkoutRet.msg)
                                 }
 
                                 //checkout成功
-                                Msg.requireShow(appContext.getString(R.string.checkout_success))
+                                Msg.requireShow(activityContext.getString(R.string.checkout_success))
 
                             }
 

@@ -1,0 +1,2 @@
+- support zig file syntax highlighting
+- editor support open .h/.hpp file

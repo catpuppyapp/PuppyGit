@@ -258,9 +258,73 @@ private val extensionToMimeTypeMap = mapOf(
     "kpr" to "application/x-kpresenter",
     "kpt" to "application/x-kpresenter",
     "ksp" to "application/x-kspread",
+
+    // START: I added
+    "iml" to "text/xml",
+    "mdown" to "text/markdown",
+    "kt" to "application/x-kotlin",
+    "kts" to "application/x-kotlin",
+    "kotlin" to "application/x-kotlin",
+    "groovy" to "application/x-groovy",
+    "gradle" to "application/x-groovy",
+
+    "go" to "application/x-go",
+    "jsx" to "application/x-jsx",
+    "tsx" to "application/x-tsx",
+
+    // override exists "bat" mime type
+    "bat" to "application/x-batchfile",
+    "cmd" to "application/x-batchfile",
+
+    "ps1" to "application/x-powershell",
+
+    "less" to "application/x-less",
+    "scss" to "application/x-scss",
+    "sass" to "application/x-scss",
+    "rs" to "application/x-rust",
+    "rust" to "application/x-rust",
+    "coffee" to "application/x-coffee",
+    "clj" to "application/x-clojure",
+    "cljs" to "application/x-clojure",
+    "lua" to "application/x-lua",
+    "php" to "application/x-php",
+    "r" to "application/x-r",
+    "sql" to "application/x-sql",
+    "swift" to "application/x-swift",
+    "vb" to "application/x-vb",
+    "pl6" to "application/x-raku",
+    "raku" to "application/x-raku",
+    "rakudoc" to "application/x-raku",
+    "rakumod" to "application/x-raku",
+    "toml" to "application/x-toml",
+    "dart" to "application/x-dart",
+    "dockerfile" to "application/x-dockerfile",
+    "makefile" to "application/x-makefile",
+    "vagrantfile" to "application/x-ruby",
+    "zig" to "application/x-zig",
+    "zon" to "application/x-zig",
+    "pro" to "application/x-proguard",
+    "proguard" to "application/x-proguard",
+    "r8" to "application/x-proguard",
+    "vue" to "application/x-vue",
+
+    "fs" to "application/x-fsharp",
+    "fsi" to "application/x-fsharp",
+    "fsx" to "application/x-fsharp",
+    "fsscript" to "application/x-fsharp",
+    "fsharp" to "application/x-fsharp",
+
+    "jl" to "application/x-julia",
+    "julia" to "application/x-julia",
+
+    "latex" to "text/x-tex",
+
+
+
+    // END: I added
+
     "kwd" to "application/x-kword",
     "kwt" to "application/x-kword",
-    "latex" to "application/x-latex",
     "lha" to "application/x-lha",
     "lhs" to "text/x-literate-haskell",
     "lin" to "application/bbolin",

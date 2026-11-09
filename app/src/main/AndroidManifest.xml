@@ -6,6 +6,29 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 <!--    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>-->
 <!--    <uses-permission android:name="com.android.vending.BILLING"/>-->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Android11+ -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+
+<!--     use to start http service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
+        android:minSdkVersion="34"
+    />
+
+<!--    use to start http service on system startup-->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- https://developer.android.com/about/versions/11/privacy/package-visibility -->
+    <!-- for select app to enter pull/leave push -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission"
+    />
 
     <application
         android:networkSecurityConfig="@xml/network_security_config"
@@ -17,8 +40,61 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PuppyGitAndroid"
-        tools:targetApi="31">
-<!--        <meta-data-->
+        android:requestLegacyExternalStorage="true"
+    >
+        <service
+            android:name="com.catpuppyapp.puppygit.service.AutomationService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:foregroundServiceType="specialUse"
+            android:exported="true">
+        <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Automation Service to do pull/push when enter/leave apps"
+                />
+        </service>
+
+        <service
+            android:name="com.catpuppyapp.puppygit.service.HttpService"
+            android:foregroundServiceType="specialUse"
+            android:enabled="true"
+            android:exported="true"
+        >
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Http Service to do pull/push via http request"
+            />
+        </service>
+
+        <service
+            android:name="com.catpuppyapp.puppygit.service.TileHttpService"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:icon="@drawable/dog_head"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name="com.catpuppyapp.puppygit.receiver.BootReceiver"
+            android:exported="true"
+            android:label="BootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+
+        <!--        <meta-data-->
 <!--            android:name="com.google.android.gms.ads.APPLICATION_ID"-->
 <!--            android:value="ca-app-pub-7616157923976738~6641339390"-->
 <!--        />-->
@@ -31,35 +107,70 @@
 <!--            android:value="true"-->
 <!--        />-->
         <activity
-            android:name=".MainActivity"
+            android:name="com.catpuppyapp.puppygit.activity.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.PuppyGitAndroid"
             android:windowSoftInputMode="adjustResize"
-            >
+            android:launchMode="singleInstance"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+
+        >
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
+            <intent-filter android:label="@string/import_str">
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="*/*"/>
-                <!--                <data android:mimeType="image/*" />-->
+
             </intent-filter>
-            <intent-filter>
+            <intent-filter android:label="@string/import_str">
                 <action android:name="android.intent.action.SEND_MULTIPLE"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="*/*"/>
-                <!--                <data android:mimeType="image/*" />-->
+
+            </intent-filter>
+
+            <intent-filter android:label="@string/edit">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <!-- support "file://" -->
+                <data android:scheme="file" />
+                <!-- support "content://" -->
+                <data android:scheme="content" />
+
+                <!-- mime type, can have more than 1 -->
+                <data android:mimeType="text/*" />
+                <data android:mimeType="*/*" />
+
             </intent-filter>
 
         </activity>
 
+        <activity
+            android:name="com.catpuppyapp.puppygit.activity.CrashActivity"
+            android:exported="false"
+            android:label="Crashed"
+            android:theme="@style/Theme.PuppyGitAndroid"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+
+        >
+
+
+        </activity>
+
+
+
+
+<!--            android:name="androidx.core.content.FileProvider"-->
         <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="com.catpuppyapp.puppygit.play.pro.fileprovider"
+            android:name="com.catpuppyapp.puppygit.provider.MyFileProvider"
+            android:authorities="@string/file_provider_authority"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

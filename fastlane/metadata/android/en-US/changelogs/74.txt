@@ -1,0 +1,4 @@
+- add remove from git to ChangeList
+- improve Files filter logic
+- fix: when filter mode on, sometimes result no update
+- minor bugs fixed

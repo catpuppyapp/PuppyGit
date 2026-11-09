@@ -1,19 +1,18 @@
 package com.catpuppyapp.puppygit.screen.content.homescreen.scaffold.actions
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.compose.LongPressAbleIconBtn
 import com.catpuppyapp.puppygit.constants.PageRequest
+import com.catpuppyapp.puppygit.fileeditor.texteditor.state.TextEditorState
+import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
-import jp.kaleidot725.texteditor.state.TextEditorState
 
 @Composable
 fun OldEditorPageActions(
@@ -38,7 +37,6 @@ fun OldEditorPageActions(
      */
 
 
-    val appContext = LocalContext.current
 
     //改成统一在EditorInnerPage关闭了
 //    val closeFile = {
@@ -123,7 +121,7 @@ fun OldEditorPageActions(
 //            enabled = editorPageShowingFileIsReady.value,
             enabled = true,  // open as 永远启用
             tooltipText = stringResource(R.string.open_as),
-            icon = Icons.Filled.OpenInNew,
+            icon = Icons.AutoMirrored.Filled.OpenInNew,
             iconContentDesc = stringResource(id = R.string.open_as),
         ) {
             editorPageRequest.value = PageRequest.requireOpenAs

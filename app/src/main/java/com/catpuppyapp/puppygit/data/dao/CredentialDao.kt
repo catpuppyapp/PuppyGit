@@ -60,4 +60,13 @@ interface CredentialDao {
     @Query("SELECT * from credential WHERE type = :type order by baseCreateTime DESC")
     suspend fun getListByType(type:Int): List<CredentialEntity>
 
+    @Query("SELECT * from credential WHERE encryptVer != :encryptVer")
+    suspend fun getByEncryptVerNotEqualsTo(encryptVer:Int): List<CredentialEntity>
+
+    /**
+     * 减秒数
+     * App版本 48更新了时区设置，之前的时区是加了系统时区偏移量的秒数，全部更新成utc时区的秒数
+     */
+    @Query("UPDATE credential set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)")
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 }

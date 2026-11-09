@@ -62,7 +62,7 @@ object UserUtil {
 
                 } catch (e: Exception) {
                     errCountLimit--
-                    MyLog.e(TAG, "$logTag: update user err:${e.stackTraceToString()}")
+                    MyLog.e(TAG, "$logTag: update user err: ${e.stackTraceToString()}")
                 }
             }
 

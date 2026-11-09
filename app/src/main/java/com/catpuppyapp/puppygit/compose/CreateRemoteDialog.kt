@@ -11,6 +11,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.data.entity.RemoteEntity
@@ -33,19 +34,21 @@ fun CreateRemoteDialog(
     loadingOff:()->Unit,
     onCancel:()->Unit ={},
     onErr:suspend (e:Exception)->Unit,
-    onOk:()->Unit = { Msg.requireShow(AppModel.singleInstanceHolder.appContext.getString(R.string.success))},
+    onOk:(()->Unit)? = null,
     onFinally:()->Unit,
 ) {
-    val appContext = AppModel.singleInstanceHolder.appContext
+    val activityContext = LocalContext.current
+
+    val onOk:()->Unit = onOk ?: { Msg.requireShow(activityContext.getString(R.string.success)) }
 
     val close = {show.value = false}
 
     AlertDialog(
         title = {
-            Text(stringResource(R.string.create))
+            DialogTitle(stringResource(R.string.create))
         },
         text = {
-            Column {
+            ScrollableColumn {
                 TextField(
                     modifier = Modifier.fillMaxWidth(),
 
@@ -57,8 +60,7 @@ fun CreateRemoteDialog(
                     label = {
                         Text(stringResource(R.string.name))
                     },
-                    placeholder = {
-                    }
+//                    placeholder = {}
                 )
                 Row(modifier = Modifier.padding(5.dp)) {
 
@@ -74,8 +76,7 @@ fun CreateRemoteDialog(
                     label = {
                         Text(stringResource(R.string.url))
                     },
-                    placeholder = {
-                    }
+//                    placeholder = {}
                 )
             }
 
@@ -89,7 +90,7 @@ fun CreateRemoteDialog(
                 onClick = {
                     close()
 
-                    doJobThenOffLoading(loadingOn, loadingOff, appContext.getString(R.string.creating)) {
+                    doJobThenOffLoading(loadingOn, loadingOff, activityContext.getString(R.string.creating)) {
                         try {
                             val remoteName = remoteName.value
                             val remoteUrl = remoteUrl.value
@@ -99,13 +100,13 @@ fun CreateRemoteDialog(
                                 //在git创建
                                 val ret = Libgit2Helper.createRemote(repo, remoteName, remoteUrl)
 
-                                val remoteDb = AppModel.singleInstanceHolder.dbContainer.remoteRepository
+                                val remoteDb = AppModel.dbContainer.remoteRepository
                                 val exists=ret.msg.startsWith("remote") && ret.msg.endsWith("already exists")  // remote 'xxxx' already exists
                                 //如果在git仓库创建remote成功，或者提示remote已经存在(避免remote存在但db无记录的问题，这个问题类似源数据和缓存出现分歧的状况)，则尝试插入，插入时检查，若repoId+remoteName不存在则插入，否则什么都不做
                                 if(ret.success() || exists) {
                                     val remoteUrl = if(exists){  //若remote存在，读取配置文件中的url，否则使用用户输入的url
                                         val r = Remote.lookup(repo, remoteName)
-                                        r?.url().toString()
+                                        r?.url() ?: ""
                                     } else remoteUrl
 
                                     //需确保insert前检查 repoId和remoteName是否存在，若存在就不插入

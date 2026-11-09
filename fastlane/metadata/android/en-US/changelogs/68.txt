@@ -1,0 +1,2 @@
+- fixed a bug that cause Diff screen crashed
+- update dependencies

@@ -1,0 +1,1 @@
+- try to fix git global username and email lost sometimes

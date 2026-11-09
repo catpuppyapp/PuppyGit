@@ -1,0 +1,1 @@
+.\kill_java.bat; .\clean.bat && .\rbds_buildReleaseWithMyDebugSign.bat; .\kill_java.bat

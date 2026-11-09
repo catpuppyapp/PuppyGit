@@ -1,0 +1,2 @@
+- restore ime visible when return Editor
+- support Arabic language (thx https://github.com/Hussain96o)

@@ -1,8 +1,10 @@
 package com.catpuppyapp.puppygit.compose
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -12,12 +14,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
-import com.catpuppyapp.puppygit.utils.AppModel
-import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
+import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
 import com.github.git24j.core.Repository
@@ -30,23 +32,32 @@ fun AskGitUsernameAndEmailDialog(
     username: MutableState<String>,
     email: MutableState<String>,
     isForGlobal: Boolean,
-    curRepo: CustomStateSaveable<RepoEntity>,
+    repos: List<RepoEntity>,
     onOk: () -> Unit,
     onCancel: () -> Unit,
     enableOk: () -> Boolean,
 ) {
 
-    val appContext = AppModel.singleInstanceHolder.appContext
+    val activityContext = LocalContext.current
 
     AlertDialog(
         title = {
-            Text(title)
+            DialogTitle(title)
         },
         text = {
-            Column {
-                Row(modifier = Modifier.padding(10.dp)) {
-                    Text(text = text)
+            ScrollableColumn {
+                MySelectionContainer {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = text, fontWeight = FontWeight.Light)
+                    }
                 }
+
+
+                Spacer(Modifier.height(15.dp))
+
                 TextField(
                     modifier = Modifier.fillMaxWidth(),
 
@@ -112,7 +123,7 @@ fun AskGitUsernameAndEmailDialog(
         doJobThenOffLoading(
             loadingOn = {},
             loadingOff = {},
-            loadingText=appContext.getString(R.string.loading)
+            loadingText=activityContext.getString(R.string.loading)
         ) {
             //如果是全局就读取全局的email和username，否则读取仓库的
             if (isForGlobal) {
@@ -120,8 +131,8 @@ fun AskGitUsernameAndEmailDialog(
                 username.value = u
                 email.value = e
 
-            } else if (curRepo.value.fullSavePath.isNotBlank()) {
-                Repository.open(curRepo.value.fullSavePath).use { repo ->
+            } else if (repos.size == 1) {  //若只选中了一个仓库，回显此仓库的用户名和邮箱
+                Repository.open(repos.first().fullSavePath).use { repo ->
                     val (u, e) = Libgit2Helper.getGitUserNameAndEmailFromRepo(repo)
                     username.value = u
                     email.value = e

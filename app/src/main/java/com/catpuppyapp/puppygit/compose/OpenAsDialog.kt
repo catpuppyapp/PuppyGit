@@ -5,36 +5,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.unit.sp
 import com.catpuppyapp.puppygit.play.pro.R
-import com.catpuppyapp.puppygit.ui.theme.Theme
 import com.catpuppyapp.puppygit.utils.FsUtils
 import com.catpuppyapp.puppygit.utils.Msg
+import com.catpuppyapp.puppygit.utils.forEachBetter
 import com.catpuppyapp.puppygit.utils.mime.MimeType
 import com.catpuppyapp.puppygit.utils.mime.guessFromFileName
 import com.catpuppyapp.puppygit.utils.mime.intentType
-import com.catpuppyapp.puppygit.utils.state.StateUtil
 import java.io.File
 
 
@@ -47,152 +37,124 @@ import java.io.File
  * close: 关闭弹窗
  */
 @Composable
-fun OpenAsDialog(fileName:String, filePath:String, showOpenInEditor:Boolean=false, openInEditor:(expectReadOnly:Boolean)->Unit={}, openSuccessCallback:()->Unit={}, close:()->Unit) {
+fun OpenAsDialog(
+    readOnly: MutableState<Boolean>,
+    fileName:String,
+    filePath:String,
+    showOpenInEditor:Boolean=false,
+    openInEditor:(expectReadOnly:Boolean)->Unit={},
+    openSuccessCallback:()->Unit={},
+    close:()->Unit
+) {
 
-    val appContext = LocalContext.current
+    val activityContext = LocalContext.current
 
-    val mimeTypeList = FsUtils.FileMimeTypes.typeList.toMutableList()
-    val mimeTextList = FsUtils.FileMimeTypes.textList.toMutableList()
+    val mimeTypeList = remember(fileName) {
+        FsUtils.FileMimeTypes.typeList.toMutableList().let {
+            //添加一个根据文件名后缀打开的方式，不过可能不准
+            //我的app里只允许对文件使用 open as，所以这里的filePath必然是文件（除非有bug），所以这里调用guessFromPath()无需判断路径是否是文件夹，也不需要写若是文件夹则在末尾追加分隔符的逻辑
+            it.add(
+                FsUtils.FileMimeTypes.MimeTypeAndDescText(
+                    MimeType.guessFromFileName(fileName).intentType
+                ) { it.getString(R.string.file_open_as_by_extension) }
+            )
 
-    //添加一个根据文件名后缀打开的方式，不过可能不准
-//    mimeTypeList.add(FsUtils.getMimeTypeForFilePath(appContext, filePath))
-    mimeTypeList.add(MimeType.guessFromFileName(fileName).intentType)  //我的app里只允许对文件使用 open as，所以这里的filePath必然是文件（除非有bug），所以这里调用guessFromPath()无需判断路径是否是文件夹，也不需要写若是文件夹则在末尾追加分隔符的逻辑
-    mimeTextList.add(stringResource(R.string.file_open_as_by_extension))
+            it
+        }
+    }
 
 
-    val readOnly = StateUtil.getRememberSaveableState(initValue = false)
-    val inDarkTheme = Theme.inDarkTheme
 
-    val color = if(inDarkTheme) Color.LightGray else Color.DarkGray
+
 
     val itemHeight = 50.dp
+    val mimeTextWeight = FontWeight.Bold
+    val mimeTypeFontSize = 12.sp
 
-    Dialog(onDismissRequest = { close() }) {
-        Card(
-            modifier = Modifier
+    PlainDialogWithPadding(
+        onClose = close,
+        scrollable = true,
+    ) {
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        //文本
+        //图像
+        //音频
+        //视频
+        //其他
+        //任意
+        //根据后缀名检测
+        if(showOpenInEditor) {
+            Row(modifier = Modifier
+                .height(itemHeight)
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Column(modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(StateUtil.getRememberScrollState())
+                .clickable {
+                    val expectReadOnly = readOnly.value  //期望的readonly模式，若文件路径不属于app内置禁止编辑的目录，则使用此值作为readonly的初始值
+                    openInEditor(expectReadOnly)
+
+                    openSuccessCallback()
+                    close()
+                }
                 ,
+
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                //文本
-                //图像
-                //音频
-                //视频
-                //其他(显示所有能打开的程序？)
-                //根据后缀名检测
-                if(showOpenInEditor) {
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Row(modifier = Modifier
-                        .height(itemHeight)
-                        .fillMaxWidth()
-                        .clickable {
-                            val expectReadOnly = readOnly.value  //期望的readonly模式，若文件路径不属于app内置禁止编辑的目录，则使用此值作为readonly的初始值
-                            openInEditor(expectReadOnly)
-
-                            openSuccessCallback()
-                            close()
-                        }
-                        ,
-                    ) {
-                        Column (modifier = Modifier.fillMaxSize()
-                                ,
-                               horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                        ){
-                            Text(
-                                text = stringResource(R.string.open_in_editor),
-                                modifier = Modifier
-                                    .wrapContentSize(Alignment.Center),
-                                textAlign = TextAlign.Center,
-                            )
-                            //20240810：内置editor也支持read only了，所以不用显示此提示了，不过有例外：若是app内置禁止编辑的目录，则无视readonly值，强制启用readonly模式
-//                            Text(
-//                                text = "("+stringResource(R.string.will_ignore_read_only)+")",
-//                                modifier = Modifier
-//                                    .wrapContentSize(Alignment.Center),
-//                                textAlign = TextAlign.Center,
-//                                fontSize = 11.sp,
-//                                color = color
-//                            )
-
-                        }
-                    }
+                Text(text = stringResource(R.string.open_in_editor), fontWeight = mimeTextWeight)
+            }
 
 //                    Spacer(modifier = Modifier.height(10.dp))
-                    //加这个分割线看着想标题，让人感觉不可点击，不好，所以去掉了
-//                    HorizontalDivider(color = color)
+            //加这个分割线看着想标题，让人感觉不可点击，不好，所以去掉了
+//                    MyHorizontalDivider(color = color)
 
-                }
-                Spacer(modifier = Modifier.height(10.dp))
+        }
 
-                mimeTextList.forEachIndexed{ index, text ->
-                    val mimeType = mimeTypeList[index]
-                    Row(
-                        modifier = Modifier
-                            .height(itemHeight)
-                            .fillMaxWidth()
-                            .clickable {
-                                val openSuccess = FsUtils.openFile(
-                                    appContext,
-                                    File(filePath),
-                                    mimeType,
-                                    readOnly.value
-                                )
+        Spacer(modifier = Modifier.height(10.dp))
 
-                                if (openSuccess) {
-                                    openSuccessCallback()
-                                } else {
-                                    Msg.requireShow(appContext.getString(R.string.open_failed))
-                                }
-
-                                close()
-                            },
-                    ) {
-                        Text(
-                            text = text,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentSize(Alignment.Center),
-                            textAlign = TextAlign.Center,
+        mimeTypeList.forEachBetter { (mimeType, text) ->
+            Row(
+                modifier = Modifier
+                    .height(itemHeight)
+                    .fillMaxWidth()
+                    .clickable {
+                        val openSuccess = FsUtils.openFile(
+                            activityContext,
+                            File(filePath),
+                            mimeType,
+                            readOnly.value
                         )
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(itemHeight)
-                        .toggleable(
-                            enabled = true,
-                            value = readOnly.value,
-                            onValueChange = { readOnly.value = !readOnly.value },
-                            role = Role.Checkbox
-                        )
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        if (openSuccess) {
+                            openSuccessCallback()
+                        } else {
+                            Msg.requireShow(activityContext.getString(R.string.open_failed))
+                        }
+
+                        close()
+                    },
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Checkbox(
-                        checked = readOnly.value,
-                        onCheckedChange = null // null recommended for accessibility with screenreaders
-                    )
+                    Text(text(activityContext), fontWeight = mimeTextWeight)
 
-                    Text(
-                        text = stringResource(R.string.read_only),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp),
-                    )
-
+                    Text(mimeType, fontSize = mimeTypeFontSize)
                 }
-                Spacer(modifier = Modifier.height(20.dp))
 
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        MyCheckBox(stringResource(R.string.read_only), readOnly)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
     }
 }

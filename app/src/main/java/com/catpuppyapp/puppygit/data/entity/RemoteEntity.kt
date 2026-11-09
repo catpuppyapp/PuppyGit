@@ -2,6 +2,7 @@ package com.catpuppyapp.puppygit.data.entity
 
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.data.entity.common.BaseFields
@@ -44,4 +45,10 @@ data class RemoteEntity(
     @Embedded
     var baseFields: BaseFields = BaseFields(),
 
-    )
+){
+    /**
+     * when push url empty, will use fetch url, that case should set this value to true*
+     */
+    @Ignore
+    var pushUrlTrackFetchUrl:Boolean = false
+}

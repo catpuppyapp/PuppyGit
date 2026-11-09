@@ -31,9 +31,9 @@ class SearchOn: Search() {
          - delCur!=delStart时matching必然为true，反之，若两者相等，matching必然为false: 因为delCur只在matching时更新，而delStart会在非matching时更新为delCur的值，所以，如果两个值不一样，必然matching为true，代码中对此情况的应用参见"note1"。
          - delCur==delEnd时matching必然为true，但注意，若两者不相等，并不能确定matching的值: 因为delCur只在matching时更新，而delEnd是常量，所以，如果两者相等，delCur必然发生了变化，此时matching必然为true。代码中对此情况的应用参见"note2"
      */
-    override fun doSearch(
-        add: CompareParam,
-        del: CompareParam,
+    override fun<T:CharSequence> doSearch(
+        add: CompareParam<T>,
+        del: CompareParam<T>,
         reverse: Boolean
     ): IndexModifyResult {
         val addList = LinkedList<IndexStringPart>()

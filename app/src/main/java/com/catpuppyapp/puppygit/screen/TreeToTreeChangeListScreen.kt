@@ -1,64 +1,71 @@
 package com.catpuppyapp.puppygit.screen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowLeft
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.VerticalAlignTop
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.catpuppyapp.puppygit.compose.CompareInfo
+import com.catpuppyapp.puppygit.compose.DropDownMenuItemText
 import com.catpuppyapp.puppygit.compose.FilterTextField
+import com.catpuppyapp.puppygit.compose.GoToTopAndGoToBottomFab
+import com.catpuppyapp.puppygit.compose.InDialogTitle
 import com.catpuppyapp.puppygit.compose.LongPressAbleIconBtn
-import com.catpuppyapp.puppygit.compose.SmallFab
+import com.catpuppyapp.puppygit.compose.MyHorizontalDivider
+import com.catpuppyapp.puppygit.compose.RepoInfoDialog
+import com.catpuppyapp.puppygit.compose.RepoInfoDialogItemSpacer
+import com.catpuppyapp.puppygit.compose.TitleDropDownMenu
 import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
 import com.catpuppyapp.puppygit.dev.commitsTreeToTreeDiffReverseTestPassed
 import com.catpuppyapp.puppygit.dev.dev_EnableUnTestedFeature
+import com.catpuppyapp.puppygit.git.CommitDto
 import com.catpuppyapp.puppygit.git.StatusTypeEntrySaver
 import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.screen.content.homescreen.innerpage.ChangeListInnerPage
+import com.catpuppyapp.puppygit.screen.functions.ChangeListFunctions
+import com.catpuppyapp.puppygit.screen.shared.SharedState
+import com.catpuppyapp.puppygit.settings.SettingsUtil
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.user.UserUtil
 import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.catpuppyapp.puppygit.utils.Msg
 import com.catpuppyapp.puppygit.utils.UIHelper
-import com.catpuppyapp.puppygit.utils.addPrefix
 import com.catpuppyapp.puppygit.utils.cache.Cache
-import com.catpuppyapp.puppygit.utils.changeStateTriggerRefreshPage
-import com.catpuppyapp.puppygit.utils.state.StateUtil
+import com.catpuppyapp.puppygit.utils.cache.NaviCache
+import com.catpuppyapp.puppygit.utils.state.mutableCustomStateListOf
+import com.catpuppyapp.puppygit.utils.state.mutableCustomStateOf
 import com.github.git24j.core.Repository
 
-//for debug
-private val TAG = "TreeToTreeChangeListScreen"
-private val stateKeyTag = "TreeToTreeChangeListScreen"
+
+private const val TAG = "TreeToTreeChangeListScreen"
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -73,22 +80,25 @@ fun TreeToTreeChangeListScreen(
     repoId:String,
 
     // show differences of commit1 to commit2 (git cmd format: 'commit1..commit2', or 'left..right')
-    commit1OidStr:String,  // left
-    commit2OidStr:String,  // right
+    //这个万一包含/呢，例如 'origin/main' 这种，所以为了避免导航出错，必须不用导航传参
+    commit1OidStrCacheKey:String,  // left
+    commit2OidStrCacheKey:String,  // right
+    commitForQueryParentsCacheKey:String,  // commit for query parents, if empty ,will not query parents for commits. ps: only need this param when compare to parents, other cases, should pass empty string
+    titleCacheKey:String,
 
-    titleDescKey:String,
-    commitForQueryParents:String,  // commit for query parents, if empty ,will not query parents for commits. ps: only need this param when compare to parents, other cases, should pass empty string
     naviUp: () -> Unit
 ) {
+    val stateKeyTag = Cache.getSubPageKey(TAG)
+
     //避免导航出现 "//" 导致导航失败
     //因为title要改变这个值，所以用State
-    val commit1OidStrState = StateUtil.getRememberSaveableState(initValue = commit1OidStr)
-    if(commit1OidStrState.value.isBlank()) {
-        commit1OidStrState.value = Cons.allZeroOid.toString()
-    }
-    val commit2OidStr = commit2OidStr.ifBlank { Cons.allZeroOid.toString() }
+    val commit1OidStrState = rememberSaveable(commit1OidStrCacheKey) { mutableStateOf((NaviCache.getByType<String>(commit1OidStrCacheKey) ?:"").ifBlank { Cons.git_AllZeroOidStr }) }
 
-    val commitParentList = StateUtil.getCustomSaveableStateList(
+    val commit2OidStr = rememberSaveable(commit2OidStrCacheKey) { (NaviCache.getByType<String>(commit2OidStrCacheKey) ?:"").ifBlank { Cons.git_AllZeroOidStr } }
+
+    val commitForQueryParents = rememberSaveable(commitForQueryParentsCacheKey){ NaviCache.getByType<String>(commitForQueryParentsCacheKey) ?:"" }
+
+    val commitParentList = mutableCustomStateListOf(
         keyTag = stateKeyTag,
         keyName = "commitParentList",
         initValue = listOf<String>()
@@ -101,40 +111,40 @@ fun TreeToTreeChangeListScreen(
 //        Msg.msgNotifyHost()
 //    }
 
-    val navController = AppModel.singleInstanceHolder.navController
-    val homeTopBarScrollBehavior = AppModel.singleInstanceHolder.homeTopBarScrollBehavior
+    val navController = AppModel.navController
+    val homeTopBarScrollBehavior = AppModel.homeTopBarScrollBehavior
 
-    val allRepoParentDir = AppModel.singleInstanceHolder.allRepoParentDir
-    val appContext = AppModel.singleInstanceHolder.appContext
+    val allRepoParentDir = AppModel.allRepoParentDir
+    val activityContext = LocalContext.current
+    val settings = remember { SettingsUtil.getSettingsSnapshot() }
 
     //取出title desc，存到状态变量里，与页面共存亡就行
-    val titleDesc = StateUtil.getRememberSaveableState(initValue = (Cache.getByTypeThenDel<String>(titleDescKey))?:"")
+    val titleDesc = rememberSaveable { mutableStateOf(NaviCache.getByType<String>(titleCacheKey) ?: "") }
 
     //替换成我的cusntomstateSaver，然后把所有实现parcellzier的类都取消实现parcellzier，改成用我的saver
 //    val curRepo = rememberSaveable{ mutableStateOf(RepoEntity()) }
 //    val curRepo = mutableCustomStateOf(value = RepoEntity())
 
-    val changeListRefreshRequiredByParentPage =StateUtil.getRememberSaveableState(initValue = "")
-    val changeListRequireRefreshFromParentPage = {
-        //TODO 显示个loading遮罩啥的
-        changeStateTriggerRefreshPage(changeListRefreshRequiredByParentPage)
+    val changeListRefreshRequiredByParentPage = rememberSaveable { mutableStateOf("TreeToTree_ChangeList_refresh_init_value_63wk") }
+    val changeListRequireRefreshFromParentPage = { whichRepoRequestRefresh:RepoEntity ->
+        ChangeListFunctions.changeListDoRefresh(changeListRefreshRequiredByParentPage, whichRepoRequestRefresh)
     }
 //    val changeListCurRepo = rememberSaveable{ mutableStateOf(RepoEntity()) }
-    val changeListCurRepo = StateUtil.getCustomSaveableState(
+    val changeListCurRepo = mutableCustomStateOf(
         keyTag = stateKeyTag,
         keyName = "changeListCurRepo",
         initValue = RepoEntity(id="")
     )
-    val changeListIsShowRepoList = StateUtil.getRememberSaveableState(initValue = false)
-    val changeListPageHasIndexItem = StateUtil.getRememberSaveableState(initValue = false)
+    val changeListIsShowRepoList = rememberSaveable { mutableStateOf(false) }
+    val changeListPageHasIndexItem = rememberSaveable { mutableStateOf(false) }
     val changeListShowRepoList = {
         changeListIsShowRepoList.value = true
     }
-    val changeListIsFileSelectionMode = StateUtil.getRememberSaveableState(initValue = false)
-    val changeListPageNoRepo = StateUtil.getRememberSaveableState(initValue = false)
-    val changeListPageHasNoConflictItems = StateUtil.getRememberSaveableState(initValue = false)
+    val changeListIsFileSelectionMode = rememberSaveable { mutableStateOf(false) }
+    val changeListPageNoRepo = rememberSaveable { mutableStateOf(false) }
+    val changeListPageHasNoConflictItems = rememberSaveable { mutableStateOf(false) }
 
-    val swap = StateUtil.getRememberSaveableState(initValue = false)
+    val swap = rememberSaveable { mutableStateOf(false) }
 //    val isDiffToHead = StateUtil.getRememberSaveableState(initValue = false)
 
 
@@ -155,106 +165,183 @@ fun TreeToTreeChangeListScreen(
 //    val needRefreshEditorPage = rememberSaveable { mutableStateOf("") }
 //    val changeListRequirePull = rememberSaveable { mutableStateOf(false) }
 //    val changeListRequirePush = rememberSaveable { mutableStateOf(false) }
-    val requireDoActFromParent = StateUtil.getRememberSaveableState(initValue = false)
-    val requireDoActFromParentShowTextWhenDoingAct = StateUtil.getRememberSaveableState(initValue = "")
-    val enableAction = StateUtil.getRememberSaveableState(initValue = true)
-    val repoState = StateUtil.getRememberSaveableIntState(initValue = Repository.StateT.NONE.bit)  //初始状态是NONE，后面会在ChangeListInnerPage检查并更新状态，只要一创建innerpage或刷新（重新执行init），就会更新此状态
+    val requireDoActFromParent = rememberSaveable { mutableStateOf(false) }
+    val requireDoActFromParentShowTextWhenDoingAct = rememberSaveable { mutableStateOf("") }
+    val enableAction = rememberSaveable { mutableStateOf(true) }
+    val repoState = rememberSaveable{mutableIntStateOf(Repository.StateT.NONE.bit)}  //初始状态是NONE，后面会在ChangeListInnerPage检查并更新状态，只要一创建innerpage或刷新（重新执行init），就会更新此状态
     val fromTo = Cons.gitDiffFromTreeToTree
-    val changeListPageItemList = StateUtil.getCustomSaveableStateList(keyTag = stateKeyTag, keyName = "changeListPageItemList", initValue = listOf<StatusTypeEntrySaver>())
-    val changeListPageItemListState = StateUtil.getRememberLazyListState()
-    val changeListPageSelectedItemList = StateUtil.getCustomSaveableStateList(keyTag = stateKeyTag, keyName = "changeListPageSelectedItemList", initValue = listOf<StatusTypeEntrySaver>())
-    val changelistPageScrollingDown = remember { mutableStateOf(false) }
+    val changeListPageItemList = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "changeListPageItemList", initValue = listOf<StatusTypeEntrySaver>())
+    val changeListPageItemListState = rememberLazyListState()
+    val changeListPageSelectedItemList = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "changeListPageSelectedItemList", initValue = listOf<StatusTypeEntrySaver>())
+    val changelistPageScrolled = rememberSaveable { mutableStateOf(settings.showNaviButtons) }
+    val changelistNewestPageId = rememberSaveable { mutableStateOf("") }
+    val changeListNaviTarget = rememberSaveable { mutableStateOf(Cons.ChangeListNaviTarget_InitValue)}
 
-    val changeListPageFilterKeyWord = StateUtil.getCustomSaveableState(
+    val changeListPageFilterKeyWord = mutableCustomStateOf(
         keyTag = stateKeyTag,
         keyName = "changeListPageFilterKeyWord",
         initValue = TextFieldValue("")
     )
-    val changeListPageFilterModeOn = StateUtil.getRememberSaveableState(initValue = false)
+    val changeListPageFilterModeOn = rememberSaveable { mutableStateOf(false) }
 
-    val changelistFilterListState = StateUtil.getCustomSaveableState(
-        keyTag = stateKeyTag,
-        keyName = "changelistFilterListState"
-    ) {
-        LazyListState(0,0)
+//    val changelistFilterListState = mutableCustomStateOf(keyTag = stateKeyTag, keyName = "changelistFilterListState", LazyListState(0,0))
+    val changelistFilterListState = rememberLazyListState()
+
+
+    val showParentListDropDownMenu = rememberSaveable { mutableStateOf(false) }
+
+    val showInfoDialog = rememberSaveable { mutableStateOf(false) }
+    val actuallyLeftName = rememberSaveable { mutableStateOf("") }
+    val actuallyRightName = rememberSaveable { mutableStateOf("") }
+    val actuallyLeftCommitDto = mutableCustomStateOf(stateKeyTag, "actuallyLeftCommitDto") { CommitDto() }
+    val actuallyRightCommitDto = mutableCustomStateOf(stateKeyTag, "actuallyRightCommitDto") { CommitDto() }
+    val initInfoDialog = {
+        runCatching {
+            val curRepo = changeListCurRepo.value
+            val repoId = curRepo.id
+            val actuallyLeftCommit = if(swap.value) commit2OidStr else commit1OidStrState.value
+            val actuallyRightCommit = if(swap.value) commit1OidStrState.value else commit2OidStr
+            actuallyLeftName.value = actuallyLeftCommit
+            actuallyRightName.value = actuallyRightCommit
+
+            Repository.open(curRepo.fullSavePath).use { repo->
+                val (left, right) = Libgit2Helper.getLeftRightCommitDto(repo, actuallyLeftCommit, actuallyRightCommit, repoId, settings)
+                actuallyLeftCommitDto.value = left
+                actuallyRightCommitDto.value = right
+            }
+        }
+
+        //出错一样显示，无所谓，顶多左右提交信息空白或有误
+        showInfoDialog.value = true
     }
 
+    if(showInfoDialog.value) {
+        RepoInfoDialog(changeListCurRepo.value, showInfoDialog, prependContent = {
+            Row {
+                InDialogTitle(titleDesc.value)
+            }
 
-    val showParentListDropDownMenu = StateUtil.getRememberSaveableState(initValue = false)
+            RepoInfoDialogItemSpacer()
+
+            CompareInfo(
+                leftName = actuallyLeftName.value,
+                leftCommitDto = actuallyLeftCommitDto.value,
+                rightName = actuallyRightName.value,
+                rightCommitDto = actuallyRightCommitDto.value,
+            )
+
+            RepoInfoDialogItemSpacer()
+
+            MyHorizontalDivider()
+            RepoInfoDialogItemSpacer()
+
+            //下面会显示仓库信息，这里弄个标题，看着和上面的样式比较搭
+            Row {
+                InDialogTitle(stringResource(R.string.repo))
+            }
+
+        })
+    }
+
+    val changeListPageEnableFilterState = rememberSaveable { mutableStateOf(false)}
+    val changeListFilterList = mutableCustomStateListOf(keyTag = stateKeyTag, keyName = "changeListFilterList", initValue = listOf<StatusTypeEntrySaver>())
+    val changeListLastClickedItemKey = rememberSaveable{ SharedState.treeToTree_LastClickedItemKey }
+
+
+    val filterLastPosition = rememberSaveable { mutableStateOf(0) }
+    val lastPosition = rememberSaveable { mutableStateOf(0) }
+
+    // start: search states
+    val changeListLastSearchKeyword = rememberSaveable { mutableStateOf("") }
+    val changeListSearchToken = rememberSaveable { mutableStateOf("") }
+    val changeListSearching = rememberSaveable { mutableStateOf(false) }
+    val resetChangeListSearchVars = {
+        changeListSearching.value = false
+        changeListSearchToken.value = ""
+        changeListLastSearchKeyword.value = ""
+    }
+    // end: search states
+
+
+    val changeListErrScrollState = rememberScrollState()
+    val changeListHasErr = rememberSaveable { mutableStateOf(false) }
+    val changeListErrLastPosition = rememberSaveable { mutableStateOf(0) }
+
 
     Scaffold(
         modifier = Modifier.nestedScroll(homeTopBarScrollBehavior.nestedScrollConnection),
         topBar = {
-            //TODO 这个东西也要根据选择哪个抽屉菜单条目而变化
-            //TODO 要能在向上滚动时，隐藏这个topbar，向下滚动时，显示出来
-            //TODO Editor时，在右隐藏侧栏显示文件名怎么样？
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
+                colors = MyStyleKt.TopBar.getColors(),
                 title = {
                     if(changeListPageFilterModeOn.value) {
-                        FilterTextField(
-                            changeListPageFilterKeyWord,
-                        )
-                    }else{
-                        val titleText = Libgit2Helper.getShortOidStrByFull(commit1OidStrState.value)+".."+Libgit2Helper.getShortOidStrByFull(commit2OidStr)
-                        Column(modifier = Modifier
-                            //外面的标题宽180.dp，这里的比外面的宽点，因为这个页面顶栏actions少
-                            .widthIn(max = 200.dp)
-                            .combinedClickable(onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                Msg.requireShow(titleText)
-                            }) { //onClick
+                        FilterTextField(filterKeyWord = changeListPageFilterKeyWord, loading = changeListSearching.value)
+                    }else {
+                        val titleText = Libgit2Helper.getLeftToRightDiffCommitsText(commit1OidStrState.value, commit2OidStr, swap.value)
+                        val titleSecondLineText = "[${changeListCurRepo.value.repoName}]"
+                        // 判断父提交是否有效，实现如果是和父提交比较，则可展开下拉菜单，否则不能
+                        val expandable = Libgit2Helper.CommitUtil.mayGoodCommitHash(commitForQueryParents)
 
-//                                当比较模式为比较指定的两个提交时(无parents)，点击不会展开下拉菜单(和parents比较才会展开)
-                                if (Libgit2Helper.CommitUtil.mayGoodCommitHash(commitForQueryParents)) {
-                                    showParentListDropDownMenu.value = true
-                                }
-
-                            }
-                        ) {
-                            Row {
+                        TitleDropDownMenu(
+                            dropDownMenuExpandState = showParentListDropDownMenu,
+                            curSelectedItem = commit1OidStrState.value,
+                            itemList = commitParentList.value.toList(),
+                            titleClickEnabled = true,
+                            switchDropDownMenuShowHide = { showParentListDropDownMenu.apply { value = !value } },
+                            titleFirstLine = {
                                 Text(
                                     text = titleText,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    fontSize = 18.sp
+                                    fontSize = MyStyleKt.Title.firstLineFontSize,
                                 )
-                            }
-                            Row {
-                                Text(text = "["+changeListCurRepo.value.repoName+"]",
+                            },
+                            titleSecondLine = {
+                                Text(
+                                    text = titleSecondLineText,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    fontSize = MyStyleKt.Title.secondLineFontSize
+                                    fontSize = MyStyleKt.Title.secondLineFontSize,
                                 )
-                            }
-
-                        }
-
-                        DropdownMenu(
-                            expanded = showParentListDropDownMenu.value,
-                            onDismissRequest = { showParentListDropDownMenu.value = false }
-                        ) {
-                            commitParentList.value.toList().forEach {
-                                val itemText = if(it == commit1OidStrState.value) addPrefix(Libgit2Helper.getShortOidStrByFull(it)) else Libgit2Helper.getShortOidStrByFull(it)
-                                DropdownMenuItem(text = { Text(text = itemText)},
-                                    onClick = {
-                                        //切换父提交则退出选择模式(现在20240420没用，但日后可能在TreeToTree页面也添加多选功能，比如可选择文件checkout or hard reset到worktree之类的，所以这里先把需要退出选择模式的逻辑写上)(20240818有用了)
-                                        if(commit1OidStrState.value != it) {
-                                            changeListIsFileSelectionMode.value=false  //退出选择模式
-                                            changeListPageSelectedItemList.value.clear() //清空已选条目
-                                        }
-
-                                        showParentListDropDownMenu.value=false
-                                        commit1OidStrState.value=it
-
-                                        changeStateTriggerRefreshPage(changeListRefreshRequiredByParentPage)
-                                    }
+                            },
+                            titleRightIcon = {
+                                Icon(
+                                    imageVector = if (showParentListDropDownMenu.value) Icons.Filled.ArrowDropDown else Icons.AutoMirrored.Filled.ArrowLeft,
+                                    contentDescription = stringResource(R.string.switch_item),
+//                                    tint = LocalContentColor.current
                                 )
-                            }
-                        }
+                            },
+                            isItemSelected = { it == commit1OidStrState.value },
+                            menuItem = { it, selected ->
+                                DropDownMenuItemText(
+                                    text1 = Libgit2Helper.getShortOidStrByFull(it),
+                                )
+                            },
+                            titleOnLongClick = { initInfoDialog() },
+                            itemOnClick = {
+                                // close menu
+                                showParentListDropDownMenu.value=false
+
+                                val curRepo = changeListCurRepo.value
+
+                                //切换父提交则退出选择模式(现在20240420没用，但日后可能在TreeToTree页面也添加多选功能，比如可选择文件checkout or hard reset到worktree之类的，所以这里先把需要退出选择模式的逻辑写上)(20240818有用了)
+                                if(commit1OidStrState.value != it) {
+                                    changeListIsFileSelectionMode.value=false  //退出选择模式
+                                    changeListPageSelectedItemList.value.clear() //清空已选条目
+                                }
+
+                                commit1OidStrState.value=it
+
+                                changeListRequireRefreshFromParentPage(curRepo)
+                            },
+                            titleOnClick = {
+                                // 当比较模式为比较指定的两个提交时(无parents)，点击不会展开下拉菜单(和parents比较才会展开)
+                                if (expandable) {
+                                    showParentListDropDownMenu.value = true
+                                }
+                            },
+                            showExpandIcon = expandable
+                        )
                     }
 
                 },
@@ -266,6 +353,8 @@ fun TreeToTreeChangeListScreen(
                             iconContentDesc = stringResource(R.string.close),
 
                         ) {
+                            resetChangeListSearchVars()
+
                             changeListPageFilterModeOn.value = false
                         }
                     }else{
@@ -311,7 +400,7 @@ fun TreeToTreeChangeListScreen(
                                 icon = Icons.Filled.Refresh,
                                 iconContentDesc = stringResource(R.string.refresh),
                             ) {
-                                changeStateTriggerRefreshPage(changeListRefreshRequiredByParentPage)
+                                changeListRequireRefreshFromParentPage(changeListCurRepo.value)
                             }
 
                             if(UserUtil.isPro() && (dev_EnableUnTestedFeature || commitsTreeToTreeDiffReverseTestPassed)) {
@@ -323,10 +412,11 @@ fun TreeToTreeChangeListScreen(
                                 ) {
 //                                作用是交换比较的和被比较的提交号(交换左右提交)
                                     swap.value = !swap.value
-                                    Msg.requireShow(appContext.getString(if (swap.value) R.string.swap_commits_on else R.string.swap_commits_off))
+                                    Msg.requireShow(activityContext.getString(if (swap.value) R.string.swap_commits_on else R.string.swap_commits_off))
 
+                                    val curRepo = changeListCurRepo.value
                                     //swap值不在cl页面的LaunchedEffects key中，所以得刷新下
-                                    changeListRequireRefreshFromParentPage()
+                                    changeListRequireRefreshFromParentPage(curRepo)
                                 }
                             }
                         }
@@ -338,81 +428,78 @@ fun TreeToTreeChangeListScreen(
             )
         },
         floatingActionButton = {
-            if(changelistPageScrollingDown.value) {
-                //向下滑动时显示go to top按钮
-                SmallFab(
-                    modifier = MyStyleKt.Fab.getFabModifier(),
-                    icon = Icons.Filled.VerticalAlignTop, iconDesc = stringResource(id = R.string.go_to_top)
-                ) {
-                    if(changeListPageFilterModeOn.value) {
-                        UIHelper.scrollToItem(scope, changelistFilterListState.value, 0)
-                    }else{
-                        UIHelper.scrollToItem(scope, changeListPageItemListState, 0)
-                    }
+            if(changelistPageScrolled.value) {
+                if(changeListHasErr.value) {
+                    GoToTopAndGoToBottomFab(
+                        scope = scope,
+                        listState = changeListErrScrollState,
+                        listLastPosition = changeListErrLastPosition,
+                        showFab = changelistPageScrolled
+                    )
+                }else {
+                    GoToTopAndGoToBottomFab(
+                        filterModeOn = changeListPageEnableFilterState.value,
+                        scope = scope,
+                        filterListState = changelistFilterListState,
+                        listState = changeListPageItemListState,
+                        filterListLastPosition = filterLastPosition,
+                        listLastPosition = lastPosition,
+                        showFab = changelistPageScrolled
+                    )
                 }
             }
         }
     ) { contentPadding ->
         ChangeListInnerPage(
-            contentPadding,
-            fromTo,
-            changeListCurRepo,
-            changeListIsFileSelectionMode,
-            changeListRefreshRequiredByParentPage,
-            changeListPageHasIndexItem,
+//            stateKeyTag = Cache.combineKeys(stateKeyTag, "ChangeListInnerPage"),
+            stateKeyTag = stateKeyTag,
+
+            errScrollState= changeListErrScrollState,
+            hasError = changeListHasErr,
+
+            lastSearchKeyword=changeListLastSearchKeyword,
+            searchToken=changeListSearchToken,
+            searching=changeListSearching,
+            resetSearchVars=resetChangeListSearchVars,
+
+            contentPadding = contentPadding,
+            fromTo = fromTo,
+            curRepoFromParentPage = changeListCurRepo,
+            isFileSelectionMode = changeListIsFileSelectionMode,
+            refreshRequiredByParentPage = changeListRefreshRequiredByParentPage.value,
+            changeListRequireRefreshFromParentPage = changeListRequireRefreshFromParentPage,
+            changeListPageHasIndexItem = changeListPageHasIndexItem,
 //                requirePullFromParentPage = changeListRequirePull,
 //                requirePushFromParentPage = changeListRequirePush,
-            requireDoActFromParent,
-            requireDoActFromParentShowTextWhenDoingAct,
-            enableAction,
-            repoState,
+            requireDoActFromParent = requireDoActFromParent,
+            requireDoActFromParentShowTextWhenDoingAct = requireDoActFromParentShowTextWhenDoingAct,
+            enableActionFromParent = enableAction,
+            repoState = repoState,
             naviUp=naviUp,
             itemList = changeListPageItemList,
             itemListState = changeListPageItemListState,
             selectedItemList = changeListPageSelectedItemList,
             commit1OidStr=commit1OidStrState.value,
             commit2OidStr=commit2OidStr,
-            commitParentList = commitParentList,
+            commitParentList = commitParentList.value,
             repoId=repoId,
             changeListPageNoRepo=changeListPageNoRepo,
             hasNoConflictItems = changeListPageHasNoConflictItems,  //这选项是worktree和Index页面用的，TreeToTree其实用不到这个选项，只是占位
-            changelistPageScrollingDown=changelistPageScrollingDown,
+            changelistPageScrolled=changelistPageScrolled,
             changeListPageFilterModeOn= changeListPageFilterModeOn,
             changeListPageFilterKeyWord=changeListPageFilterKeyWord,
             filterListState = changelistFilterListState,
             swap=swap.value,
             commitForQueryParents = commitForQueryParents,
             openDrawer = {}, //非顶级页面按返回键不需要打开抽屉
-
-//            isDiffToHead=isDiffToHead
+            newestPageId = changelistNewestPageId,
+            naviTarget = changeListNaviTarget,
+            enableFilterState = changeListPageEnableFilterState,
+            filterList = changeListFilterList,
+            lastClickedItemKey = changeListLastClickedItemKey
 
         )
 
     }
-//    }
-
-    //compose创建时的副作用
-//    LaunchedEffect(currentPage.intValue) {
-//    LaunchedEffect(commit1OidStrState.value + commit2OidStr) {
-//        try {
-//            doJobThenOffLoading {
-//                Repository.open(curRepo)
-//            }
-//        } catch (cancel: Exception) {
-////            ("LaunchedEffect: job cancelled")
-//        }
-//    }
-//
-//
-//    //compose被销毁时执行的副作用
-//    DisposableEffect(Unit) {
-////        ("DisposableEffect: entered main")
-//        onDispose {
-////            ("DisposableEffect: exited main")
-//        }
-//    }
 
 }
-
-
-

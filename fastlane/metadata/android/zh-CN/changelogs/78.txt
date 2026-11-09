@@ -1,0 +1,2 @@
+- 修复当git url为大写HTTPS url时关联凭据无效的bug
+- 调整凭据管理器UI

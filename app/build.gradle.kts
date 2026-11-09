@@ -1,8 +1,5 @@
-import org.jetbrains.kotlin.fir.expressions.FirEmptyArgumentList.arguments
-import org.jetbrains.kotlin.fir.resolve.calls.ResolvedCallArgument.DefaultArgument.arguments
-import org.jetbrains.kotlin.resolve.calls.model.ResolvedCallArgument.DefaultArgument.arguments
-
 plugins {
+
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 //    id("kotlin-android-extensions")  //不能和kotlin-parcelize一起启用
@@ -10,25 +7,49 @@ plugins {
     id("com.google.devtools.ksp")
     id("androidx.room")
 //    kotlin("jvm") version "1.9.23"
-    kotlin("plugin.serialization") version "1.9.23"
+//    kotlin("plugin.serialization")  == id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlin.plugin.compose")
+
+    // err: The 'java' plugin has been applied, but it is not compatible with the Android plugins.
+//    id("io.ktor.plugin")
+
+
 }
 val dbSchemaLocation="$projectDir/schemas"
 room {
     schemaDirectory(dbSchemaLocation)
 }
 android {
+    // quit include google signature block in the built apk file, these info using google public key encrypted, if don't publish app to google play, is nonsense
+    // see: https://developer.android.com/build/dependencies?hl=zh-cn#dependency-info-play
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs.
+        includeInApk = false
+        // Disables dependency metadata when building Android App Bundles.
+        includeInBundle = false
+    }
+
     val packageName = "com.catpuppyapp.puppygit.play.pro"
 
     namespace = packageName  // 这个值和包名有所不同，但是最好把这个值和包名设成一样的 或 让此值在系统中唯一，绝对不要不同或相同包名的app拥有相同namespace！如果包名不同但此值相同，会删除已安装的app！或者冲突，安装失败。（R.string 那个R需要在这个作用域下运行）
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = packageName
         //ndk编译的库不能大于minSdk值，否则会不支持
         minSdk = 26 //26，安卓8(Oreo, O)
-        targetSdk = 34
-        versionCode = 23
-        versionName = "1.0.3.1"
+        targetSdk = 36
+        versionCode = 135
+        versionName = "1.1.5.9"
+
+
+        //这两个file provider的值必须一样
+        //可以在代码里用`BuildConfig.变量名`使用的值
+        // 4个引号的原因：三个是raw string，另外一个是为了赋值变量时包含引号，不然会直接裸值替换上去，就不是String类型了
+        buildConfigField("String", "FILE_PROVIDIER_AUTHORITY", """"$applicationId.file_provider"""")
+        //可以在xml里用“@string/变量名”使用的值，目前在 `AndroidManifest.xml` 里使用了
+        resValue("string", "file_provider_authority", "$applicationId.file_provider")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -37,6 +58,12 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a","x86_64","x86","armeabi-v7a")
         }
+
+//        resourceConfigurations.plus(listOf("en", "zh-rCN"))
+//        androidResources {
+//            generateLocaleConfig=true
+//        }
+
         externalNativeBuild {
             cmake {
                 //这个 -DANDROID_STL=none 我也不知道什么意思，从其他项目复制来的，可能就是不用 C++ 的STL？不能用new delete之类的关键字？
@@ -51,7 +78,7 @@ android {
     externalNativeBuild {
         cmake {
             path = file("CMakeLists.txt")
-            version = "3.22.1"
+            version = "3.31.1"
         }
     }
 //    sourceSets["main"].jniLibs.srcDir("jniLibs")
@@ -59,47 +86,143 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !project.hasProperty("disableMinify")
+            isShrinkResources = !project.hasProperty("disableShrinkRes")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
+                "gson.pro"
             )
+        }
+    }
+    splits {
+        abi {
+            isEnable = true
+            // 把 ABI 列表重置为空，然后 include(...) 只添加你指定的那些 ABI。
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            // 包含额外的全架构apk
+            isUniversalApk = true
         }
     }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     kotlin {
-        jvmToolchain(11)
+        jvmToolchain(17)
     }
     buildFeatures {
         compose = true
         buildConfig = true  //不开这个不能用BuildConfig，我是为了用来获取versionName和versionCode
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.12"
+        kotlinCompilerExtensionVersion = "1.5.15"
     }
     packaging {
         resources {
             //别用 `excludes+=xxxxx` 语法，看着太像拼接字符串，实际上excludes是集合
             excludes.add("/META-INF/{AL2.0,LGPL2.1}")
 //            //不知道为什么，引入包含 SubscriptionPurchaseV2 的依赖 google-api-services-androidpublisher 后，会报错，排除这两个东西就不报错了，意义不明
-//            excludes.add("META-INF/INDEX.LIST")
+            excludes.add("META-INF/INDEX.LIST")
+            excludes.add("META-INF/io.netty.versions.properties")
 //            excludes.add("META-INF/DEPENDENCIES")
 
         }
+
+        // dex.useLegacyPackaging + jniLibs.useLegacyPackaging can be make app installer smaller,
+        // maybe compress the libs? if it is, then maybe make install process slower a little bit
+        // AI说 dex.useLegacyPackaging 和 jniLibs.useLegacyPackaging ，若开启，安装包小，性能差，因为需解压才能使用文件；
+        // 若关闭则安装包大，性能好，因为不需要解压lib出来，可直接对apk文件执行mmap映射lib到内存中，可能不开的话，只是归档，无压缩，所以才能这样。
+        // 所以这本质上也是空间换时间的选项，若开启，安装包更小，省空间，安装和运行性能可能受影响，并且安装后实际会占用更多空间，
+        // 因为apk里有一份压缩的库，apk外还有一份解压的库；若关闭，则安装包更大。综合来说，若无特殊需求，关闭更好。
+        // 特殊需求：由于安卓多数目录都没执行权限，app也不可擅自加执行权限，但jniLib例外，app内部lib目录下的so库一律有执行权限，因此，如果
+        // 你的app需要执行二进制文件，可以通过把二进制文件放到so库来解决，但是，若关闭 jniLibs.useLegacyPackaging ，则不会解压库到lib目录，
+        // 所以，若你的应用依赖外部二进制文件，并且想在app使用时运行它，就必须启用jniLibs.useLegacyPackaging
+        dex {
+            useLegacyPackaging = true
+        }
+        jniLibs {
+            // 此参数作用是: "安装apk后把 .so libs 导出到对应架构的目录"，不然可能不会导出
+            //
+            // 详细解释：
+            // 由于安卓10以上对 "/data/data/包名" 下的目录做了 “可写和可执行互斥”的限制，而app对此目录下又可写，
+            // 所以把可执行文件放这个目录就不能执行，会抛权限被拒绝的异常
+            // 但对 "/data/app/乱码/包名.乱码/lib/架构" 下的so库则是可执行不可写，
+            // 因此，可以把可执行文件放到 lib 目录就能使其可执行了
+            //
+            // 注：可写和可执行互斥是为了避免app安装后被恶意利用，下载文件，执行，或者被黑客利用，
+            // 修改原本应该被执行的文件执行任意代码，总之主要是为了安全考虑，有此限制就可在多数情况
+            // 下确保应用执行的一定是安装时携带的文件，而安装后下载或创建的文件则不被执行
+            useLegacyPackaging = true
+        }
     }
 
-    ndkVersion = "26.0.10792818"
+    ndkVersion = "26.3.11579264"
 }
 
 dependencies {
+    //TODO move dependency versions to libs.versions.toml file
+
+
+    // file encoding detector
+    implementation("com.github.albfernandez:juniversalchardet:2.5.0")
+
+    // start: sora editor
+//    implementation(platform("io.github.Rosemoe.sora-editor:bom:0.23.6"))
+//    implementation("io.github.Rosemoe.sora-editor:editor")
+//    implementation("io.github.Rosemoe.sora-editor:language-textmate")
+//    implementation("io.github.Rosemoe.sora-editor:language-treesitter")
+//    implementation("io.github.Rosemoe.sora-editor:language-java")
+    implementation("org.eclipse.jdt:org.eclipse.jdt.annotation:2.3.100")
+    implementation("org.jruby.joni:joni:2.2.6")
+    implementation("com.google.code.gson:gson:2.13.1")
+    implementation("org.snakeyaml:snakeyaml-engine:2.10")
+
+    // end: sora editor
+
+
+    // start: temporary markdown dependencies, remove when 'compose-markdown' support custom coilStore(for load image from relative path)
+    val markwonVersion = "4.6.2"
+    val coilVersion = "2.7.0"
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("io.noties.markwon:core:$markwonVersion")
+    implementation("io.noties.markwon:ext-strikethrough:$markwonVersion")
+    implementation("io.noties.markwon:ext-tables:$markwonVersion")
+    implementation("io.noties.markwon:html:$markwonVersion")
+    implementation("io.noties.markwon:linkify:$markwonVersion")
+    implementation("io.noties.markwon:ext-tasklist:$markwonVersion")
+    implementation("com.github.jeziellago:Markwon:58aa5aba6a")
+    // end: temporary markdown dependencies
+
+    // 文件管理器显示图片缩略图
+    implementation("io.coil-kt:coil:$coilVersion")
+    implementation("io.coil-kt:coil-compose:$coilVersion")
+    implementation("io.coil-kt:coil-gif:$coilVersion")
+    implementation("io.coil-kt:coil-svg:$coilVersion")
+
+    // markdown preview support, enable this after it support load relative path resources
+//    implementation("com.github.jeziellago:compose-markdown:change_to_the_latest_version")
+
+
+    // swipe compose
+//    implementation("me.saket.swipe:swipe:1.3.0")
+
+
+
+    // ktor for http server (git pull/push api)
+    val ktorVersion = "3.2.2"
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+
+
+    implementation("at.favre.lib:bcrypt:0.10.2")
     //billing
 //    implementation ("com.android.billingclient:billing-ktx:7.0.0")
 
@@ -109,8 +232,11 @@ dependencies {
 //    // implementation("androidx.ads:ads-identifier:1.0.0-alpha05")
 
 
-    implementation("androidx.documentfile:documentfile:1.0.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    implementation("androidx.documentfile:documentfile:1.1.0")
+    val lifecycleVersion = "2.10.0"
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycleVersion")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion")
+
     //implementation("androidx.appcompat:appcompat-resources:1.6.1")
     //    val work_version = "2.9.0"
 //    // Kotlin + coroutines
@@ -122,7 +248,7 @@ dependencies {
 //    implementation("com.github.kaleidot725:text-editor-compose:0.6.0")
 
     // room start
-    val room_version = "2.6.1"
+    val room_version = "2.8.4"
     implementation("androidx.room:room-runtime:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")
     // To use Kotlin Symbol Processing (KSP)
@@ -141,7 +267,9 @@ dependencies {
 //    implementation("io.coil-kt:coil:2.6.0")
 //    implementation("io.coil-kt:coil-compose:2.6.0")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    // javax NonNull annotation for git24j
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit
 //    implementation("org.eclipse.jgit:org.eclipse.jgit:v6.6.1.202309021850-r")
 // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit.pgm
@@ -149,8 +277,8 @@ dependencies {
 // 像使用git命令一样使用jgit，而这个包是用jgit的各种api实现的，若想了解jgit如何实现git的各种命令，这个包很有参考价值，
 // 不过不知道里面的类是否能直接用？比如我想用clone命令，可不可以直接调用这里的Clone类？
 //    implementation("org.eclipse.jgit:org.eclipse.jgit.pgm:6.8.0.202311291450-r")
-    implementation(files("libs/git24j-1.0.2.20240423.jar"))
-    implementation("androidx.navigation:navigation-compose:2.7.7")
+//    implementation(files("libs/git24j-1.0.4.20241114.jar"))
+    implementation("androidx.navigation:navigation-compose:2.9.8")
 
     //查询支付状态的api，如果前端取消订单后不久就过期，就不需要这个了，否则需要
 //    implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
@@ -161,11 +289,21 @@ dependencies {
 //    implementation("org.danilopianini:khttp:1.6.2")
 
 //    implementation("androidx.compose.material3:material3-android:1.2.0-beta02")
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    implementation("androidx.core:core-ktx:1.13.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation(platform("androidx.compose:compose-bom:2024.04.01"))
+
+
+
+
+    //启动屏幕
+    implementation("androidx.core:core-splashscreen:1.2.0")
+
+
+    //对应组件的实际版本号，参见：https://developer.android.com/develop/ui/compose/bom/bom-mapping
+    val composeBom = platform("androidx.compose:compose-bom:2025.07.00")
+
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -173,14 +311,25 @@ dependencies {
 //    implementation("androidx.compose.compiler:compiler:1.5.12")
 //    implementation("androidx.compose.compiler:compiler-hosted:1.5.12")
 
-    implementation("androidx.compose.material3:material3:1.2.1")
-    implementation ("androidx.compose.material:material-icons-extended:1.6.6")
+    //一般用composeBom里的默认版本就行，若想使用特定版本可在后面加 ":版本号"
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
 
 
+    // sora editor:
+    // https://github.com/Rosemoe/sora-editor/blob/main/README.zh-cn.md
+//    implementation(platform("io.github.Rosemoe.sora-editor:bom:0.23.5"))
+//    implementation("io.github.Rosemoe.sora-editor:editor")
+//    implementation("io.github.Rosemoe.sora-editor:language-textmate")
+//    implementation("io.github.Rosemoe.sora-editor:language-java")
+//    implementation("io.github.Rosemoe.sora-editor:language-treesitter")
+
+
+    testImplementation(composeBom)
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.04.01"))
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
+    androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

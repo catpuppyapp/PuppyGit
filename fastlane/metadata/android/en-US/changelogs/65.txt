@@ -1,0 +1,2 @@
+- Line number of Diff and Editor screens use width-fixed font
+- support create patch at Diff screen

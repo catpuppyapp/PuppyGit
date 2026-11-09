@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
  * alpha:按钮和背景的透明度
  */
 @Composable
-fun SmallFab(modifier: Modifier = Modifier, icon:ImageVector, iconDesc:String, alpha:Float = 0.8f, onClick: () -> Unit) {
+fun SmallFab(modifier: Modifier = Modifier, icon:ImageVector, iconDesc:String, alpha:Float = 0.5f, onClick: () -> Unit) {
     SmallFloatingActionButton(
         //除了弹出输入法时加padding，多选模式也需要加padding，不然Fab会盖住底栏按钮
         modifier=modifier,

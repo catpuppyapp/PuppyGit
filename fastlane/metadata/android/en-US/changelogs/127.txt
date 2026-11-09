@@ -1,0 +1,2 @@
+- support force pull (issue #135)
+- upgrade libgit2 and openssl libs

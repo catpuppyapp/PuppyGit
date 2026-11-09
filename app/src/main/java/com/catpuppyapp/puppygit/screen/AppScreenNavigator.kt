@@ -1,13 +1,24 @@
 package com.catpuppyapp.puppygit.screen
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.catpuppyapp.puppygit.constants.Cons
+import com.catpuppyapp.puppygit.constants.LineNum
+import com.catpuppyapp.puppygit.screen.shared.CommitListFrom
+import com.catpuppyapp.puppygit.screen.shared.DiffFromScreen
+import com.catpuppyapp.puppygit.screen.shared.FileChooserType
+import com.catpuppyapp.puppygit.screen.shared.IntentHandler
+import com.catpuppyapp.puppygit.settings.SettingsUtil
 import com.catpuppyapp.puppygit.utils.AppModel
-import com.catpuppyapp.puppygit.utils.state.StateUtil
+import com.catpuppyapp.puppygit.utils.cache.NaviCache
 
 @Composable
 fun AppScreenNavigator() {
@@ -15,19 +26,20 @@ fun AppScreenNavigator() {
     AppModel.init_3()
 
     //上面初始化成功，这里才能获取到navController
-    val navController =AppModel.singleInstanceHolder.navController
+    val navController =AppModel.navController
 
 //    val startScreen = Cons.selectedItem_Repos
     //初始启动页面的子页面（Repos/Files之类的）
-    val currentHomeScreen = StateUtil.getRememberSaveableIntState(initValue = Cons.selectedItem_Repos)
+//    val currentHomeScreen = rememberSaveable{ mutableIntStateOf(Cons.selectedItem_Repos) }
+    val currentHomeScreen = rememberSaveable{ mutableIntStateOf(SettingsUtil.obtainLastQuitHomeScreen()) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
 //    val scope = ComposeHelper.getCoroutineScope()
 
-//    val homeTopBarScrollBehavior = AppModel.singleInstanceHolder.homeTopBarScrollBehavior
-    val editorPageLastFilePath = StateUtil.getRememberSaveableState(initValue = "")
+//    val homeTopBarScrollBehavior = AppModel.homeTopBarScrollBehavior
+    val editorPageLastFilePath = rememberSaveable { mutableStateOf("")}
 
-    val repoPageListState = StateUtil.getRememberLazyListState()
+    val repoPageListState = rememberLazyListState()
 //    val filePageListState = StateUtil.getRememberLazyListState()
     //网上拷贝的声称能记住滚动状态的lazyColumn listState，实际上，没有用，我记得默认的listState是能记住的，现在不能记住，可能是bug
 //    val repoPageListState = rememberForeverLazyListState("repo")
@@ -41,6 +53,8 @@ fun AppScreenNavigator() {
 
     //x 20240419 已实现) 改成记住上次退出屏幕从配置文件读取
     val navStartScreen = Cons.nav_HomeScreen;
+
+    val gotNewIntent = rememberSaveable { IntentHandler.gotNewIntent }
 
     //TODO 添加一级页面的数据，编辑器打开的文件列表，都存到state里，并提供一个setter，
     // setter会更新内存里的数据和数据库里的数据，setter参考currentPage的setCurrentPage()，
@@ -74,19 +88,35 @@ fun AppScreenNavigator() {
                 naviUp = { navController.navigateUp() }
             )
         }
+        composable(Cons.nav_DomainCredentialListScreen) {
+//            val remoteId = it.arguments?.getString("remoteId") ?: ""
+
+            DomainCredentialListScreen(
+//                remoteId= if(remoteId==Cons.dbInvalidNonEmptyId) "" else remoteId,
+                naviUp = { navController.navigateUp() }
+            )
+        }
         /*
          * composable("profile/{userId}") { backStackEntry ->
             Profile(navController, backStackEntry.arguments?.getString("userId"))
             }
          */
-        composable(Cons.nav_CommitListScreen + "/{repoId}/{useFullOid}/{fullOidKey}/{shortBranchNameKey}/{isCurrent}") {
+        composable(Cons.nav_CommitListScreen + "/{repoId}/{isHEAD}/{from}/{fullOidCacheKey}/{shortBranchNameCacheKey}") {
+            val fullOidCacheKey = it.arguments?.getString("fullOidCacheKey") ?: ""
+            val shortBranchNameCacheKey = it.arguments?.getString("shortBranchNameCacheKey") ?: ""
+
             CommitListScreen(
                 repoId = it.arguments?.getString("repoId")?:"",
-                useFullOid = it.arguments?.getString("useFullOid") != "0",  //非0就为真
-                fullOidKey = it.arguments?.getString("fullOidKey")?:"",
-                shortBranchNameKey = it.arguments?.getString("shortBranchNameKey")?:"",
-                isCurrent = it.arguments?.getString("isCurrent") != "0",
-                naviUp = { navController.navigateUp() },
+                isHEAD = it.arguments?.getString("isHEAD") != "0",
+                fullOidCacheKey = fullOidCacheKey,
+                shortBranchNameCacheKey = shortBranchNameCacheKey,
+                from = CommitListFrom.fromCode(it.arguments?.getString("from")!!)!!,
+                naviUp = {
+                    navController.navigateUp()
+
+                    NaviCache.del(fullOidCacheKey)
+                    NaviCache.del(shortBranchNameCacheKey)
+                },
             )
         }
         composable(Cons.nav_ErrorListScreen + "/{repoId}") {
@@ -97,21 +127,34 @@ fun AppScreenNavigator() {
         }
         composable(Cons.nav_CloneScreen + "/{repoId}") {
             CloneScreen(
-                it.arguments?.getString("repoId"),
+                it.arguments?.getString("repoId") ?: "",
                 naviUp = { navController.navigateUp() },
             )
         }
-//        composable(Cons.nav_DiffScreen + "/{repoId}/{relativePathUnderRepoEncoded}/{fromTo}/{changeType}") {
-        composable(Cons.nav_DiffScreen + "/{repoId}/{fromTo}/{changeType}/{fileSize}/{underRepoPathKey}/{treeOid1Str}/{treeOid2Str}") {
+        composable(Cons.nav_DiffScreen + "/{repoId}/{fromTo}/{treeOid1Str}/{treeOid2Str}/{isDiffToLocal}/{curItemIndexAtDiffableList}/{localAtDiffRight}/{fromScreen}/{diffableListCacheKey}/{isMultiMode}") {
+            val diffableListCacheKey = it.arguments?.getString("diffableListCacheKey") ?: ""
+
             DiffScreen(
                 repoId = it.arguments?.getString("repoId") ?: "",
                 fromTo = it.arguments?.getString("fromTo") ?: "",
-                changeType = it.arguments?.getString("changeType") ?: "",
-                fileSize= it.arguments?.getString("fileSize")?.toLong() ?: 0L,
-                underRepoPathKey = it.arguments?.getString("underRepoPathKey") ?: "",
                 treeOid1Str = it.arguments?.getString("treeOid1Str") ?: "",
                 treeOid2Str = it.arguments?.getString("treeOid2Str") ?: "",
-                naviUp = { navController.navigateUp() },
+                localAtDiffRight = (it.arguments?.getString("localAtDiffRight")?.toInt() ?: 0) != 0,
+                isDiffToLocal = (it.arguments?.getString("isDiffToLocal")?.toInt() ?: 0) != 0,
+                fromScreen = DiffFromScreen.fromCode(it.arguments?.getString("fromScreen")!!)!!,
+                diffableListCacheKey = diffableListCacheKey,
+                isMultiMode = it.arguments?.getString("isMultiMode") == "1",
+                curItemIndexAtDiffableItemList = try {
+                    (it.arguments?.getString("curItemIndexAtDiffableList") ?: "").toInt()
+                }catch (_:Exception) {
+                    -1
+                },
+                naviUp = {
+                    navController.navigateUp()
+
+                    NaviCache.del(diffableListCacheKey)
+                },
+
             )
         }
 
@@ -150,20 +193,28 @@ fun AppScreenNavigator() {
                 },
             )
         }
-        composable(Cons.nav_TreeToTreeChangeListScreen+"/{repoId}/{commit1OidStr}/{commit2OidStr}/{titleDescKey}/{commitForQueryParents}") {
-//            val commitForQueryParents = it.arguments?.getString("commitForQueryParents") ?: ""
+        composable(Cons.nav_TreeToTreeChangeListScreen+"/{repoId}/{commit1OidStrCacheKey}/{commit2OidStrCacheKey}/{commitForQueryParentsCacheKey}/{titleCacheKey}") {
+            val commit1OidStrCacheKey = it.arguments?.getString("commit1OidStrCacheKey") ?: ""
+            val commit2OidStrCacheKey = it.arguments?.getString("commit2OidStrCacheKey") ?: ""
+            val commitForQueryParentsCacheKey = it.arguments?.getString("commitForQueryParentsCacheKey") ?: ""
+
+            val titleCacheKey = it.arguments?.getString("titleCacheKey") ?: ""
 
             TreeToTreeChangeListScreen(
                 repoId = it.arguments?.getString("repoId") ?: "",
-                commit1OidStr=it.arguments?.getString("commit1OidStr") ?: "",
-                commit2OidStr=it.arguments?.getString("commit2OidStr") ?: "",
-                titleDescKey=it.arguments?.getString("titleDescKey") ?: "",
+                commit1OidStrCacheKey = commit1OidStrCacheKey,
+                commit2OidStrCacheKey = commit2OidStrCacheKey,
 
                 //若不需要查parents，则传all zero oid在url中占位即可。
-                commitForQueryParents = it.arguments?.getString("commitForQueryParents") ?: "",
-
+                commitForQueryParentsCacheKey = commitForQueryParentsCacheKey,
+                titleCacheKey = titleCacheKey,
                 naviUp = {
                     navController.navigateUp()
+
+                    NaviCache.del(commit1OidStrCacheKey)
+                    NaviCache.del(commit2OidStrCacheKey)
+                    NaviCache.del(commitForQueryParentsCacheKey)
+                    NaviCache.del(titleCacheKey)
                 },
             )
         }
@@ -175,21 +226,24 @@ fun AppScreenNavigator() {
                 },
             )
         }
-        composable(Cons.nav_SubPageEditor+"/{filePathKey}/{goToLine}/{initMergeMode}/{initReadOnly}") {
+        composable(Cons.nav_SubPageEditor+"/{goToLine}/{initMergeMode}/{initReadOnly}/{filePathKey}") {
+            val filePathKey = it.arguments?.getString("filePathKey") ?: ""
+
             SubPageEditor(
-                filePathKey = it.arguments?.getString("filePathKey") ?: "",
 
                 goToLine = try {
                     val l = it.arguments?.getString("goToLine") ?: ""
                     l.toInt()
                 }catch (e:Exception) {
-                    -1
+                    LineNum.lastPosition
                 },
                 initMergeMode = it.arguments?.getString("initMergeMode") == "1",  //传1开启mergeMode，否则关闭
                 initReadOnly = it.arguments?.getString("initReadOnly") == "1",  //传1开启read only，否则关闭
                 editorPageLastFilePath = editorPageLastFilePath,
+                filePathKey = filePathKey,
                 naviUp = {
                     navController.navigateUp()
+                    NaviCache.del(filePathKey)
                 },
             )
         }
@@ -217,6 +271,41 @@ fun AppScreenNavigator() {
                 },
             )
         }
+        composable(Cons.nav_SubmoduleListScreen+"/{repoId}") {
+            SubmoduleListScreen(
+                repoId = it.arguments?.getString("repoId") ?: "",
+                naviUp = {
+                    navController.navigateUp()
+                },
+            )
+        }
 
+        composable(Cons.nav_FileHistoryScreen+"/{repoId}/{fileRelativePathKey}") {
+            val fileRelativePathKey = it.arguments?.getString("fileRelativePathKey") ?: ""
+
+            FileHistoryScreen(
+                repoId = it.arguments?.getString("repoId") ?: "",
+                fileRelativePathKey = fileRelativePathKey,
+                naviUp = {
+                    navController.navigateUp()
+                    NaviCache.del(fileRelativePathKey)
+                },
+            )
+        }
+
+        composable(Cons.nav_FileChooserScreen+"/{type}") {
+            FileChooserScreen (
+                //不要用getInt()，会报错，妈的，什么狗屁api
+                type = FileChooserType.fromCode(it.arguments!!.getString("type")!!)!!,
+                naviUp = {
+                    navController.navigateUp()
+                },
+            )
+        }
+
+    }
+
+    LaunchedEffect(gotNewIntent.value) {
+        IntentHandler.requireHandleNewIntent()
     }
 }

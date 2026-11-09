@@ -13,19 +13,25 @@
 /**
  * @file git2/sys/remote.h
  * @brief Low-level remote functionality for custom transports
- * @defgroup git_remote Low-level remote functionality
+ * @defgroup git_remote Low-level remote functionality for custom transports
  * @ingroup Git
  * @{
 */
 
 GIT_BEGIN_DECL
 
+/**
+ * A remote's capabilities.
+ */
 typedef enum {
 	/** Remote supports fetching an advertised object by ID. */
 	GIT_REMOTE_CAPABILITY_TIP_OID = (1 << 0),
 
 	/** Remote supports fetching an individual reachable object. */
 	GIT_REMOTE_CAPABILITY_REACHABLE_OID = (1 << 1),
+
+	/** Remote supports push options. */
+	GIT_REMOTE_CAPABILITY_PUSH_OPTIONS = (1 << 2),
 } git_remote_capability_t;
 
 /**
@@ -43,4 +49,5 @@ GIT_EXTERN(void) git_remote_connect_options_dispose(
 
 /** @} */
 GIT_END_DECL
+
 #endif

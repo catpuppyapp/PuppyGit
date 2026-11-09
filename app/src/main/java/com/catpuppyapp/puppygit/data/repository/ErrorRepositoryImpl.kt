@@ -38,7 +38,10 @@ class ErrorRepositoryImpl(private val dao: ErrorDao) : ErrorRepository {
 
         //话说用户如果一直不点列表怎么办？日志一直留着？应该不会吧？总会点的吧！？
         //获取列表之前，删除一下以前的记录
-        deleteErrOverLimitTime()
+        // 这个有点搞笑了，获取之前删除，用户一点错误信息，看到一片空白，会懵，
+        //  如果非要获取时删除，应该先获取，后删除，这样最起码用户第一次进入列表还能看到错误信息，还稍微合理些，
+        //  但还是不好，所以废弃自动删除方案，让用户手动删除比较好，反正错误信息也不占多少硬盘空间
+//        deleteErrOverLimitTime()
 
         //返回当前的列表
         return dao.getListByRepoId(repoId)
@@ -70,4 +73,9 @@ class ErrorRepositoryImpl(private val dao: ErrorDao) : ErrorRepository {
     override fun deleteByRepoId(repoId: String) {
         dao.deleteByRepoId(repoId)
     }
+
+    override suspend fun subtractTimeOffset(offsetInSec:Long) {
+        dao.subtractTimeOffset(offsetInSec)
+    }
+
 }

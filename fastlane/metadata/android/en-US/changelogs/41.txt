@@ -1,0 +1,1 @@
+- DiffScreen: change deleted content color from red to gray

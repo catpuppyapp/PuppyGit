@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -15,7 +17,8 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.utils.UIHelper
-import com.catpuppyapp.puppygit.utils.state.StateUtil
+import com.catpuppyapp.puppygit.utils.forEachBetter
+import com.catpuppyapp.puppygit.utils.forEachIndexedBetter
 
 @Composable
 fun RemoteCheckBoxList(
@@ -40,9 +43,9 @@ fun RemoteCheckBoxList(
         }
     }
 
-    val selectAll = StateUtil.getRememberSaveableState(initValue = getSelectedAllState())
+    val selectAll = rememberSaveable { mutableStateOf(getSelectedAllState())}
 
-    val checkedListState = checkedList.map { StateUtil.getRememberSaveableState(initValue = it) }
+    val checkedListState = checkedList.map { rememberSaveable { mutableStateOf(it) }}
 
     val selectItem = { name:String->
         UIHelper.selectIfNotInSelectedListElseNoop(name, selectedList)
@@ -52,7 +55,7 @@ fun RemoteCheckBoxList(
         selectedList.remove(name)
     }
 
-    val showChildren = StateUtil.getRememberSaveableState(initValue = false)
+    val showChildren = rememberSaveable { mutableStateOf(false)}
 
     Row (
         verticalAlignment = Alignment.CenterVertically,
@@ -62,12 +65,12 @@ fun RemoteCheckBoxList(
             MyTriCheckBox(text = stringResource(R.string.all)+" (${selectedList.size}/${itemList.size})", state = selectAll.value, enabled=enabled) {
                 //如果不是选中所有，添加所有元素到列表，然后切换状态为选中所有；如选中所有，清空选中列表，然后设置状态为未选中任何条目
                 if(selectAll.value!=ToggleableState.On) {
-                    itemList.forEach { selectItem(it) }
-                    checkedListState.forEachIndexed {idx, it -> it.value = true; checkedList[idx]=true }
+                    itemList.forEachBetter { selectItem(it) }
+                    checkedListState.forEachIndexedBetter {idx, it -> it.value = true; checkedList[idx]=true }
                     selectAll.value = ToggleableState.On
                 }else {
                     selectedList.clear()
-                    checkedListState.forEachIndexed {idx, it-> it.value = false; checkedList[idx]=false }
+                    checkedListState.forEachIndexedBetter {idx, it-> it.value = false; checkedList[idx]=false }
                     selectAll.value = ToggleableState.Off
                 }
             }
@@ -91,7 +94,7 @@ fun RemoteCheckBoxList(
     }
 
     if(showChildren.value) {
-        itemList.forEachIndexed {idx, name->
+        itemList.forEachIndexedBetter {idx, name->
             val v = checkedListState[idx]
             Row(modifier = Modifier.padding(start = 10.dp)) {
                 MyCheckBox(text = name, value = v, enabled = enabled) {

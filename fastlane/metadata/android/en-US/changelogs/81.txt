@@ -1,0 +1,3 @@
+- fix: navigator state err cause app crashed
+- AutomationService: support auto push after screen off
+- update style of open as dialog

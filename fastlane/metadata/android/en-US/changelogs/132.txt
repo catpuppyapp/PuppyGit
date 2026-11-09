@@ -1,0 +1,2 @@
+- update libgit2 and openssl version
+- update bundled certs

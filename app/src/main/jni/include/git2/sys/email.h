@@ -7,6 +7,11 @@
 #ifndef INCLUDE_sys_git_email_h__
 #define INCLUDE_sys_git_email_h__
 
+#include "git2/common.h"
+#include "git2/diff.h"
+#include "git2/email.h"
+#include "git2/types.h"
+
 /**
  * @file git2/sys/email.h
  * @brief Advanced git email creation routines
@@ -28,6 +33,7 @@ GIT_BEGIN_DECL
  * @param body optional text to include above the diffstat
  * @param author the person who authored this commit
  * @param opts email creation options
+ * @return 0 on success or an error code
  */
 GIT_EXTERN(int) git_email_create_from_diff(
 	git_buf *out,
@@ -42,4 +48,5 @@ GIT_EXTERN(int) git_email_create_from_diff(
 
 /** @} */
 GIT_END_DECL
+
 #endif

@@ -1,0 +1,2 @@
+- remember read-only for DiffScreen
+- adjust compare method

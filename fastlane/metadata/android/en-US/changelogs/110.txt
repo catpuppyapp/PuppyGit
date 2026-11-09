@@ -1,0 +1,3 @@
+- fix editor undo stack not clear after reload file
+- Diff screen support syntax highlighting
+- Improve commit msg dialog

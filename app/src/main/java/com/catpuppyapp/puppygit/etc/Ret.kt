@@ -56,6 +56,11 @@ class Ret<T> private constructor(initData:T){
         val openFileWithEditMode=1002
         val openFileWithViewMode=1003
         val fileContentIsEmptyNeedNotCreateSnapshot=1004
+
+        /**
+         * merge or rebase, fast forward success
+         */
+        val fastForwardSuccess=1005
     }
 
 
@@ -72,21 +77,45 @@ class Ret<T> private constructor(initData:T){
         return !hasError()
     }
 
+    fun<O> copyWithNewData(newData:O? = null):Ret<O?> {
+        return create(
+            data = newData,
+            msg = msg,
+            code = code,
+            exception = exception
+        )
+    }
+
     companion object {
+        fun <T>createErrorDefaultDataNull(errMsg:String, data:T? =null, errCode:Int=ErrCode.default, exception: Exception?=null):Ret<T?> {
+            return create(data, errMsg, errCode, exception)
+        }
+
+        fun <T>createErrorDefaultDataNull(data:T? =null, errMsg:String, errCode:Int=ErrCode.default, exception: Exception?=null):Ret<T?> {
+            return create(data, errMsg, errCode, exception)
+        }
+
+        fun <T>createSuccessDefaultDataNull(data:T? =null, successMsg:String="", successCode:Int=SuccessCode.default):Ret<T?> {
+            return create(data, successMsg, successCode, exception=null)
+        }
+
         fun <T>createError(data:T, errMsg:String, errCode:Int=ErrCode.default, exception: Exception?=null):Ret<T> {
             return create(data, errMsg, errCode, exception)
         }
+
         fun <T>createSuccess(data:T, successMsg:String="", successCode:Int=SuccessCode.default):Ret<T> {
             return create(data, successMsg, successCode, exception=null)
         }
 
         fun <T>create(data:T, msg:String, code:Int, exception: Exception?):Ret<T> {
-            val r = Ret<T>(data)
+            val r = Ret(data)
             r.data=data
             r.msg=msg
             r.code=code
             r.exception=exception
             return  r
         }
+
     }
+
 }

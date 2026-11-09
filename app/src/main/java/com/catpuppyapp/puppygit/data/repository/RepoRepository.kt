@@ -17,6 +17,8 @@
 package com.catpuppyapp.puppygit.data.repository
 
 import com.catpuppyapp.puppygit.data.entity.RepoEntity
+import com.catpuppyapp.puppygit.etc.Ret
+import com.catpuppyapp.puppygit.git.ImportRepoResult
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -56,12 +58,23 @@ interface RepoRepository {
 
     suspend fun getById(id:String): RepoEntity?
 
-    suspend fun getAll(): List<RepoEntity>
+    /**
+     * 正常来说一个名字只有一个仓库可匹配，若有多个返回列表第一个元素，若无匹配，返回null
+     */
+    suspend fun getByName(name:String): RepoEntity?
+
+    suspend fun getByNameOrId(repoNameOrId:String, forceUseIdMatchRepo:Boolean): Ret<RepoEntity?>
+
+    suspend fun getByFullSavePath(fullSavePath:String, onlyReturnReadyRepo:Boolean=false, requireSyncRepoInfoWithGit:Boolean=true): RepoEntity?
+
+    suspend fun getByIdNoSyncWithGit(id:String): RepoEntity?
+
+    suspend fun getAll(updateRepoInfo:Boolean = true): List<RepoEntity>
 
     suspend fun cloneDoneUpdateRepoAndCreateRemote(item: RepoEntity)
 
     suspend fun getAReadyRepo():RepoEntity?
-    suspend fun getReadyRepoList():List<RepoEntity>
+    suspend fun getReadyRepoList(requireSyncRepoInfoWithGit:Boolean=true):List<RepoEntity>
     suspend fun updateCredentialIdByCredentialId(oldCredentialIdForClone:String, newCredentialIdForClone:String)
     suspend fun unlinkCredentialIdByCredentialId(credentialIdForClone:String)
 
@@ -78,7 +91,20 @@ interface RepoRepository {
     suspend fun getByStorageDirId(storageDirId:String): List<RepoEntity>
     suspend fun deleteByStorageDirId(storageDirId:String)
 
+    /**
+     * @param repoNamePrefix specific a prefix for repo name, e.g. when import submodule of repos, default prefix is "sub_"
+     * @param parentRepoId when import a submodule from a repo, should set this id to parent repo's id
+     */
+    suspend fun importRepos(dir: String, isReposParent: Boolean, repoNamePrefix:String="", repoNameSuffix:String="", parentRepoId:String?=null, credentialId:String?=null): ImportRepoResult
+
+    /**
+     * if reponame has illegal chars or exists in repo, return false, else return true
+     */
+    suspend fun isGoodRepoName(name:String):Boolean
+
+    suspend fun updateRepoName(repoId:String, name: String)
 
 
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 
 }

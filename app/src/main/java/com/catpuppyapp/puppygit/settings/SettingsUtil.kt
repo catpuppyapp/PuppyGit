@@ -15,9 +15,9 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 object SettingsUtil {
-    private val TAG = "SettingsUtil"
-    private val settingsFileName= "PuppyGitSettings.json"
-    private val settingsBakFileName= "PuppyGitSettings-bak.json"
+    private const val TAG = "SettingsUtil"
+    private const val settingsFileName= "PuppyGitSettings.json"
+    private const val settingsBakFileName= "PuppyGitSettings-bak.json"
 //    private lateinit var settingsSaveDir:File
     private val createFileLock = Mutex()
 
@@ -27,21 +27,29 @@ object SettingsUtil {
     private val saveChannel = Channel<AppSettings>(capacity = channelBufferSize, onBufferOverflow = BufferOverflow.SUSPEND)
     private val saveJobStarted = AtomicBoolean(false)
 
-    private lateinit var appSettings:AppSettings
+    private var appSettings:AppSettings = AppSettings()
+
+    // if only need read some fields, better use this no-lock instance
+//    private var appSettingsReadOnly: AppSettings = AppSettings()
+
     private lateinit var settingsFile:File
     private lateinit var settingsBakFile:File
+    private lateinit var saveDir:File
 
 //    fun getSettingsFile():File {
 //        return
 //    }
 
     /**
-     * this method may do over once,so need a machine to promise only start 1 save job
+     * this method may do over once,so need a mechanism to promise only start 1 save job
      */
     suspend fun init(settingsSaveDir:File, useBak:Boolean=false) {  //入参是保存settings的目录
+        // settings files save dir
+        val saveDirPath = settingsSaveDir.canonicalPath
+        saveDir = File(saveDirPath)
         //settings文件
-        settingsFile = File(settingsSaveDir.canonicalPath, settingsFileName)
-        settingsBakFile = File(settingsSaveDir.canonicalPath, settingsBakFileName)
+        settingsFile = File(saveDirPath, settingsFileName)
+        settingsBakFile = File(saveDirPath, settingsBakFileName)
 
         //如果文件不存在则创建
         createFileIfNonExists()
@@ -55,13 +63,19 @@ object SettingsUtil {
         readSettingsFromFile(useBak)
     }
 
+    fun destroyer() {
+        saveChannel.close()
+        saveJobStarted.compareAndSet(true, false)
+    }
+
     private fun startSaveJob() {
         val logTag="settingsSaveJob"
 
         doJobThenOffLoading {
             var errCountLimit = 3
+            var closed = false
 
-            while (errCountLimit > 0) {
+            while (errCountLimit > 0 && closed.not()) {
                 try {
                     saveLock.withLock {
                         //接收新的配置项
@@ -83,27 +97,37 @@ object SettingsUtil {
 
                         //更新类里的配置项
                         appSettings = newSettings
-
-                        //TODO 有待验证：如果我没搞错的话，json保存到bak文件 和 拷贝bak到原始文件 若目标文件不存在都会自动创建文件，所以这里不需要判断文件是否存在，直接写入就行。（就算不是其实也无所谓，顶多崩溃，重启app就解决了，所以问题不大）
+//                        appSettingsReadOnly = newSettings.copy()
+                        //json保存到bak文件 和 拷贝bak到原始文件 若目标文件不存在都会自动创建文件，
+                        // 所以这里不需要判断文件是否存在，直接写入就行。（就算不是其实也无所谓，顶多崩溃，重启app就解决了，所以问题不大）
                         //更新配置文件
                         saveSettings(newSettings)
 
                     }
                 } catch (e: Exception) {
+                    if(saveChannel.tryReceive().isClosed) {
+                        closed = true
+                    }
                     errCountLimit--
 
-                    MyLog.e(TAG, "$logTag: write config to settings file err:${e.stackTraceToString()}")
+                    MyLog.e(TAG, "$logTag: write config to settings file err: ${e.stackTraceToString()}")
                 }
             }
 
             //这里要不要关流？万一有多个writer协程，但其中一个失败其余不失败呢？不过目前就一个writer且没计划添加更多，所以，关了吧先
-            saveChannel.close()
+            if(saveChannel.tryReceive().isClosed.not()) {
+                saveChannel.close()
+            }
 
         }
     }
 
     private suspend fun createFileIfNonExists() {
         createFileLock.withLock {
+            if(saveDir.exists().not()) {
+                saveDir.mkdirs()
+            }
+
             if (!settingsFile.exists()) {
                 settingsFile.createNewFile()
             }
@@ -114,18 +138,23 @@ object SettingsUtil {
         }
     }
 
-    private fun readSettingsFromFile(useBak: Boolean) {
+    private suspend fun readSettingsFromFile(useBak: Boolean) {
+        createFileIfNonExists()
+
         val settingsStr = if(useBak) settingsBakFile.readText() else settingsFile.readText();
         if(settingsStr.isBlank()) {  //文件内容为空，可能刚新建的，往里面存入内容
             //新建对象，然后写入文件
             val newSettings = getNewSettings()
             appSettings = newSettings
+//            appSettingsReadOnly = newSettings.copy()
             //新创建的肯定不用迁移，直接保存即可
             doJobThenOffLoading {
                 saveChannel.send(newSettings)
             }
         }else {  //文件若存在，读取即可
-            appSettings = JsonUtil.j.decodeFromString<AppSettings>(settingsStr)
+            val newSettings = JsonUtil.j.decodeFromString<AppSettings>(settingsStr)
+            appSettings = newSettings
+//            appSettingsReadOnly = newSettings.copy()
             //检查是否需要迁移，如果需要，会执行迁移，并对appSettings重新赋值
             migrateIfNeed()
         }
@@ -162,7 +191,12 @@ object SettingsUtil {
     }
 
     //为settings实例创建快照，实际就是返回一份对象的拷贝，如果指定对象，则返回指定对象的拷贝，如果不指定则返回SettingsUtil类持有的settings对象的拷贝（不一定和硬盘上的一致，但一般都是最新）
-    fun getSettingsSnapshot(src:AppSettings = appSettings):AppSettings {
+//    fun getSettingsSnapshot(src:AppSettings = appSettings):AppSettings {
+    fun getSettingsSnapshot():AppSettings {
+        return getSettingsSnapshotFromSrc(appSettings)
+    }
+
+    private fun getSettingsSnapshotFromSrc(src:AppSettings):AppSettings {
         return src.copy()
     }
 
@@ -194,7 +228,7 @@ object SettingsUtil {
 
         //返回的时候要创建拷贝，避免和update用同一个变量，不然外部一修改返回值里的数据，即将写入的状态也会被影响，就乱套了
         //这里获取刚被修改过的实例的拷贝，相对更新一些，但可能和硬盘上的数据不一致，但正常来说，最终修改写入硬盘后，内容会一致
-        return if(requireReturnSnapshotOfUpdatedSettings) getSettingsSnapshot(settingsForUpdate) else null  //返回最新的设置项，如果需要的话(否则的话，你的设置项可能已经过期，某些设置不是最新，但是，如果你需要用到的变量很少，并且就算不是最新也问题不大，就没必要获取最新设置项的拷贝了)
+        return if(requireReturnSnapshotOfUpdatedSettings) getSettingsSnapshotFromSrc(settingsForUpdate) else null  //返回最新的设置项，如果需要的话(否则的话，你的设置项可能已经过期，某些设置不是最新，但是，如果你需要用到的变量很少，并且就算不是最新也问题不大，就没必要获取最新设置项的拷贝了)
     }
 
     fun updateSettingsIfNotEqualsWithOld(newSettings: AppSettings) {  //供外部调用的更新配置文件的方法
@@ -226,7 +260,10 @@ object SettingsUtil {
     /**
      * 不要直接调用此方法，应该通过writeChannel来更新配置文件
      */
-    private fun saveSettings(newSettings: AppSettings) {
+    private suspend fun saveSettings(newSettings: AppSettings) {
+        // avoid dir deleted by user
+        createFileIfNonExists()
+
         //不知道kotlin怎么以覆盖模式打开文件，索性每次写入删除一下，outputStream写入的时候会新建
         //经过我观察，不用删除，默认就是覆盖
 //        if(settingsFile.exists()) {
@@ -255,6 +292,7 @@ object SettingsUtil {
     }
 
     fun delSettingsFile(settingsSaveDir:File, delOrigin:Boolean=true, delBak:Boolean=true) {
+        //btw: delete non-exist file no exception will throw, so need not try catch
         if(delOrigin) {
             File(settingsSaveDir.canonicalPath, settingsFileName).delete()
         }
@@ -263,4 +301,21 @@ object SettingsUtil {
             File(settingsSaveDir.canonicalPath, settingsBakFileName).delete()
         }
     }
+
+    fun obtainLastQuitHomeScreen() = appSettings.lastQuitHomeScreen
+    fun editorTabIndentCount() = appSettings.editor.tabIndentSpacesCount
+    fun isEditorSyntaxHighlightEnabled() = appSettings.editor.syntaxHighlightEnabled
+    fun isEditorUseSystemFonts() = appSettings.editor.useSystemFonts
+    fun isDiffUseSystemFonts() = appSettings.diff.useSystemFonts
+    fun isDiffSyntaxHighlightEnabled() = appSettings.diff.syntaxHighlightEnabled
+    fun isCommitMsgPreviewModeOn() = appSettings.commitMsgPreviewModeOn
+    fun isCommitMsgUseSystemFonts() = appSettings.commitMsgUseSystemFonts
+    fun isEnabledDetailsCompareForDiff() = appSettings.diff.enableDetailsCompare
+    fun isEditorAutoCloseSymbolPairEnabled() = appSettings.editor.autoCloseSymbolPair
+    fun editorThresholdLinesCountOfIncrementAnalyze() = appSettings.editor.thresholdLinesCountOfIncrementAnalyze
+    fun obtainEditorFileAssociationList() = appSettings.editor.fileAssociationList
+    fun sshAllowUnknownHosts() = appSettings.sshSetting.allowUnknownHosts
+    fun httpSslVerify() = appSettings.httpSetting.sslVerify
+//    fun pullWithRebase() = appSettings.globalGitConfig.pullWithRebase
+
 }

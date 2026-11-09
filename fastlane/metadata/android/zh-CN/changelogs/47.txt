@@ -1,0 +1,3 @@
+- 使app可以通过重建验证，这将用来验证app百分百构建自开源代码 (issue #13, thx @IzzySoft)
+- 修改 jvmTarget 从 11 到 17
+- 内嵌 git24j 源代码并修复一些bug

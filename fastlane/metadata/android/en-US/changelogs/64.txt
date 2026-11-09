@@ -1,0 +1,2 @@
+- double-click title can switch between top and current position
+- change go to top fab logic to switch between top and last position

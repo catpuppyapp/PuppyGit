@@ -34,7 +34,8 @@ fun MimeType.Companion.guessFromExtension(extension: String): MimeType {
     return extensionToMimeTypeOverrideMap[extension]
         ?: MimeTypeMap.getSingleton().getMimeTypeFromExtensionCompat(extension)?.asMimeTypeOrNull()
 //        ?: TEXT_PLAIN  //如果文件类型未知，当作文本文件处理
-        ?: GENERIC  //如果文件类型未知，当作常规文件处理，GENERIC 调用 intentType 会返回 */*，由于我有open as弹窗，所以未知类型用户可选用内部编辑器打开或外部程序打开，操作我感觉还算方便，所以废弃“无匹配mime就当作text类型”的方案
+        ?: GENERIC  //如果文件类型未知，当作常规文件处理，GENERIC 调用 intentType 会返回 */*（好像因为做了map映射？），有点反直觉，我还以为会返回字节流octet那个类型。另外，由于我有open as弹窗，所以未知类型用户可选用内部编辑器打开或外部程序打开，操作我感觉还算方便，所以废弃“无匹配mime就当作text类型”的方案
+//        ?: ANY  //如果文件类型未知，当作 */* 处理，这个好像匹配不如generic多，废弃
 }
 
 // @see https://android.googlesource.com/platform/external/mime-support/+/master/mime.types
@@ -87,13 +88,48 @@ private val MimeType.intentMimeType: MimeType
     get() = mimeTypeToIntentMimeTypeMap[this] ?: this
 
 private val mimeTypeToIntentMimeTypeMap = listOf(
+    // see: `memo.md`: "为内置Editor关联文件 20250718："
+
     // Allows matching "text/*"
     "application/ecmascript" to "text/ecmascript",
     "application/javascript" to "text/javascript",
     "application/json" to "text/json",
+    "application/x-go" to "text/x-go",
+    "application/x-kotlin" to "text/x-kotlin",
+    "application/x-groovy" to "text/x-groovy",
+    "application/x-jsx" to "text/x-jsx",
+    "application/x-batchfile" to "text/x-batchfile",
+    "application/x-powershell" to "text/x-powershell",
+
+    "application/x-less" to "text/x-less",
+    "application/x-scss" to "text/x-scss",
+    "application/x-rust" to "text/x-rust",
+    "application/x-coffee" to "text/x-coffee",
+    "application/x-clojure" to "text/x-clojure",
+    "application/x-lua" to "text/x-lua",
+    "application/x-php" to "text/x-php",
+    "application/x-r" to "text/x-r",
+    "application/x-sql" to "text/x-sql",
+    "application/x-swift" to "text/x-swift",
+    "application/x-vb" to "text/x-vb",
+    "application/x-dart" to "text/x-dart",
+    "application/x-dockerfile" to "text/x-dockerfile",
+    "application/x-makefile" to "text/x-makefile",
+    "application/x-ruby" to "text/x-ruby",
+
+    "application/x-tsx" to "text/x-tsx",
     "application/typescript" to "text/typescript",
     "application/x-sh" to "text/x-shellscript",
     "application/x-shellscript" to "text/x-shellscript",
+
+    "application/x-raku" to "text/x-raku",
+    "application/x-toml" to "text/x-toml",
+    "application/x-proguard" to "text/x-proguard",
+    "application/x-zig" to "text/x-zig",
+    "application/x-vue" to "text/x-vue",
+    "application/x-fsharp" to "text/x-fsharp",
+    "application/x-julia" to "text/x-julia",
+
     // Allows matching generic
     MimeType.GENERIC.value to MimeType.ANY.value
 ).associate { it.first.asMimeType() to it.second.asMimeType() }

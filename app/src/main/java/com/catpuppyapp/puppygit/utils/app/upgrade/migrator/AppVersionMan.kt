@@ -19,7 +19,7 @@ object AppVersionMan {
      * 执行后如果版本号文件不存在或存在但依然是旧版本号，则迁移失败；只有当迁移成功后文件才会存在且为最新版本号
      */
     //if migrator return true, will upgrade version
-    fun init(storeDir:File=AppModel.singleInstanceHolder.innerDataDir, migrator:(oldVer:Int) ->Boolean) {
+    suspend fun init(storeDir:File=AppModel.innerDataDir, migrator: suspend (oldVer:Int) ->Boolean) {
         verFile=File(storeDir, filename)
 
         val oldVer = getVersionFromFile()

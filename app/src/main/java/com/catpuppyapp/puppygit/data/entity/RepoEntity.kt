@@ -1,5 +1,6 @@
 package com.catpuppyapp.puppygit.data.entity
 
+import android.content.Context
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
@@ -7,9 +8,20 @@ import androidx.room.PrimaryKey
 import com.catpuppyapp.puppygit.constants.Cons
 import com.catpuppyapp.puppygit.constants.StorageDirCons
 import com.catpuppyapp.puppygit.data.entity.common.BaseFields
+import com.catpuppyapp.puppygit.etc.RepoPendingTask
+import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.settings.AppSettings
+import com.catpuppyapp.puppygit.settings.SettingsUtil
+import com.catpuppyapp.puppygit.utils.FsUtils
+import com.catpuppyapp.puppygit.utils.Libgit2Helper
+import com.catpuppyapp.puppygit.utils.MyLog
+import com.catpuppyapp.puppygit.utils.dbIntToBool
 import com.catpuppyapp.puppygit.utils.getSecFromTime
+import com.catpuppyapp.puppygit.utils.getShortTimeIfPossible
 import com.catpuppyapp.puppygit.utils.getShortUUID
 import com.github.git24j.core.Repository
+
+private const val TAG = "RepoEntity"
 
 @Entity(tableName = "repo")
 data class RepoEntity(
@@ -19,6 +31,10 @@ data class RepoEntity(
 //    var testMigra:String="",
 
     // repo push or pull etc time
+    /**
+     * usually repo name is not blank, but maybe is blank, no enforce check, e.g. if you import a empty name folder as repo, then will create
+     *  a RepoEntity with blank name
+     */
     var repoName: String = "",  //repo name and repo dir name，字段需唯一
     var fullSavePath:String="",  //repo full save path, include all repo save path and repo name, such as, allRepoSaveLocation/thisRepoName
 
@@ -32,8 +48,9 @@ data class RepoEntity(
     var lastUpdateTime: Long = getSecFromTime(),  //本来是最后更新仓库workStatus状态的时间，后来改成最后检查更新的时间了，只有fetchpullpush这类和服务器通信更新或检查更新的操作才会更新这个时间，所以实际上这个字段成了最后与服务器通信的时间
     var workStatus: Int = Cons.dbRepoWorkStatusNotReadyNeedClone,
 
+    //分支短名
     var branch: String = "",  //如果仓库没detached HEAD，这个是分支名，如果detached，这个是短commit hash，可以通过git24j的相关函数判断仓库是否处于detached HEAD状态，或者在detached时直接使用 lastCommitHash 的值也行
-    var lastCommitHash: String = "",  //最后提交的hash，短
+    var lastCommitHash: String = "",  //最后提交的完整hash
     var isDetached:Int=Cons.dbCommonFalse,
     var upstreamBranch:String="",  // eg: origin/main
 
@@ -47,9 +64,11 @@ data class RepoEntity(
     var cloneUrl:String="",
 
     //仓库默认状态为 active，可通过仓库设置页面(不是公用仓库选项，是仓库私有的选项)设置为 inactive，如果是inactive，将不会自动检查仓库状态，在changelist也不能查看仓库状态(在changelist切换仓库，没这个仓库)
+    @Deprecated("实际上没用到这个字段")
     var isActive: Int=Cons.dbCommonTrue,
 
-    var createBy:Int= Cons.dbRepoCreateByClone,
+    // 日后如果想区分克隆的仓库和从本地导入的仓库，会用到这字段
+    var createBy:Int = Cons.dbRepoCreateByClone,
 
     //是否开启递归克隆
     var isRecursiveCloneOn:Int=Cons.dbCommonFalse,
@@ -69,13 +88,15 @@ data class RepoEntity(
     //这个值用于创建仓库时初始化remote的singlebranch状态，之后就没用了，因为singlebranch是针对remote的，不是针对仓库的
     var isSingleBranch:Int=Cons.dbCommonFalse,
 
-    var parentRepoId:String="", // parentRepoId，若是submodule或submodule的submodule，则此值id为其父repo的id
+    // parentRepoId，若是submodule或submodule的submodule...以此类推，则此值id为其父repo id
+    var parentRepoId:String="",
 
     //当前分支是领先于上游还是落后于上游，仅在非detached HEAD状态下此值有意义
     var ahead:Int=0,
     var behind:Int=0,
 
     //storageDirId,若不指定，用内部默认目录，若指定，可是内部也可是外部，取决于你指定哪个
+    @Deprecated("已废弃")
     var storageDirId:String=StorageDirCons.DefaultStorageDir.puppyGitRepos.id,
 
     @Embedded
@@ -91,4 +112,142 @@ data class RepoEntity(
     //忽略的字段应放构造器外面
     @Ignore
     var gitRepoState:Repository.StateT? = null
+
+    @Ignore
+    var parentRepoName:String=""
+
+    /**
+     * indicate parentRepoId related Repo is valid or is not
+     *
+     * this field only correct after you updated parent repo info for a repo entity
+     * 这个字段仅在更新了父仓库信息后才有效，如果只查当前仓库信息，但没检查parentRepoId是否关联有效仓库，此值可能不准确
+     */
+    @Ignore
+    var parentRepoValid:Boolean=false
+
+
+    @Ignore
+    var otherText:String?=null
+
+    /**
+     * 有些操作重量级又没必要立刻执行，先挂起，谁爱执行谁执行
+     *
+     * 例如：更新仓库信息的时候需要检查是否有未提交修改，但这个操作有点重量级，就可先挂起，然后在获取列表之后，开个协程单独处理，每个任务应该只消费一次，消费完就设为NONE
+     */
+    @Ignore
+    var pendingTask:RepoPendingTask=RepoPendingTask.NONE
+
+    @Ignore
+    var lastCommitHashShort:String? = null  //最后提交hash，短
+        private set
+        get() {
+            val tmp =  field
+            if(tmp != null && lastCommitHash.startsWith(tmp)) {
+                return tmp
+            }
+
+            return Libgit2Helper.getShortOidStrByFull(lastCommitHash).let { field = it; it }
+        }
+
+    @Ignore
+    var lastCommitDateTime:String=""
+        private set
+
+    // this filed no need set in copy, will re-generate and cache the value at first time getting
+    @Ignore
+    private var lastUpdateTimeFormattedCached:String? = null
+
+
+    @Ignore
+    private var cached_OneLineLastestUnCheckedErrMsg:String? = null
+    fun getCachedOneLineLatestUnCheckedErrMsg(): String = (cached_OneLineLastestUnCheckedErrMsg ?: Libgit2Helper.zipOneLineMsg(latestUncheckedErrMsg).let { cached_OneLineLastestUnCheckedErrMsg = it; it });
+
+    /**
+     * 拷贝所有字段，包括不在data class构造器的字段
+     */
+    fun copyAllFields(
+        settings: AppSettings,
+        newInstance: RepoEntity = copy(),
+    ):RepoEntity {
+        newInstance.gitRepoState = gitRepoState
+        newInstance.parentRepoName = parentRepoName
+        newInstance.parentRepoValid = parentRepoValid
+        newInstance.otherText = otherText
+        newInstance.pendingTask = pendingTask
+        newInstance.lastCommitDateTime = lastCommitDateTime
+        newInstance.latestCommitMsg = latestCommitMsg
+
+        updateLastCommitHashShort()
+        updateCommitDateTime(settings)
+
+        return newInstance
+    }
+
+    fun hasOther():Boolean {
+        return dbIntToBool(isShallow)
+    }
+
+    fun getOther(): String {
+        if(otherText == null) {
+            // for better filterable, these text should not localize
+            otherText = if(dbIntToBool(isShallow)) Cons.isShallowStr else Cons.notShallowStr
+        }
+
+        return otherText ?: ""
+    }
+
+    fun equalsForSelected(other:RepoEntity):Boolean {
+        return id == other.id
+    }
+
+    fun getRepoStateStr(context: Context): String {
+        return Libgit2Helper.getRepoStateStr(gitRepoState, context)
+    }
+
+    fun updateLastCommitHashShort() {
+        lastCommitHashShort = Libgit2Helper.getShortOidStrByFull(lastCommitHash)
+    }
+
+    // update date time of commit
+    fun updateCommitDateTime(settings: AppSettings) {
+        try {
+            Repository.open(fullSavePath).use { repo ->
+                updateCommitDateTimeWithRepo(repo, settings)
+            }
+        }catch (e: Exception) {
+            MyLog.e(TAG, "#updateCommitDateTime: resolve commit hash failed! hash=$lastCommitHash, err=${e.localizedMessage}")
+        }
+    }
+
+    fun updateCommitDateTimeWithRepo(repo: Repository, settings: AppSettings) {
+        lastCommitDateTime = try {
+            getShortTimeIfPossible(Libgit2Helper.getSingleCommitSimple(repo, repoId = id, commitOidStr = lastCommitHash, settings).dateTime)
+        }catch (e: Exception) {
+            MyLog.e(TAG, "#updateCommitDateTimeWithRepo: resolve commit hash failed! hash=$lastCommitHash, err=${e.localizedMessage}")
+            ""
+        }
+    }
+
+    fun cachedLastUpdateTime():String {
+        return lastUpdateTimeFormattedCached ?: getShortTimeIfPossible(lastUpdateTime).let { lastUpdateTimeFormattedCached = it; it }
+    }
+
+    fun createErrMsgForView(context: Context):String {
+        return if(createErrMsg.isEmpty()) {
+            ""
+        }else {
+            context.getString(R.string.error) + ": " + createErrMsg
+        }
+    }
+
+    @Ignore
+    private var cached_appRelatedPath:String? = null
+    fun cachedAppRelatedPath() = cached_appRelatedPath ?: FsUtils.getPathWithInternalOrExternalPrefix(fullPath = fullSavePath).let { cached_appRelatedPath = it; it }
+
+    @Ignore
+    var latestCommitMsg = ""
+    @Ignore
+    private var cached_oneLineLatestCommitMsg:String? = null
+    fun getOrUpdateCachedOneLineLatestCommitMsg() = cached_oneLineLatestCommitMsg ?: Libgit2Helper.zipOneLineMsg(latestCommitMsg).let { cached_oneLineLatestCommitMsg = it; it }
+
 }

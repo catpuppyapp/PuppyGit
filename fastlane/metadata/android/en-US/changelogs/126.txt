@@ -1,0 +1,4 @@
+- support create bare repo
+- support rename remotes (issue #136)
+- change on back behavior
+- upgrade ui libs

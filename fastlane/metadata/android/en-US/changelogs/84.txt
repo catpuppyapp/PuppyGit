@@ -1,0 +1,4 @@
+- Differences screen support multi files
+- show random loading text when launching
+- improve UI
+- fix bugs

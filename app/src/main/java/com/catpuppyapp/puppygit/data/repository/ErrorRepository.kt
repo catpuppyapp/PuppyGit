@@ -62,4 +62,6 @@ interface ErrorRepository {
 
     fun deleteByRepoId(repoId: String)
 
+    suspend fun subtractTimeOffset(offsetInSec:Long)
+
 }

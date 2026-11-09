@@ -1,0 +1,1 @@
+- use icon instead of clickable text to copy commit hash

@@ -1,0 +1,3 @@
+- adjust create stash and tag dialog
+- add Stash entry at ChangeList view
+- fix: navigate to some pages may got err

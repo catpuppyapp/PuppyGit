@@ -21,49 +21,50 @@ import com.catpuppyapp.puppygit.data.entity.SettingsEntity
 import com.catpuppyapp.puppygit.utils.getSecFromTime
 
 class SettingsRepositoryImpl(private val dao: SettingsDao) : SettingsRepository {
-    override suspend fun insert(item: SettingsEntity) {
-        val timeInSec = getSecFromTime()
-        item.baseFields.baseCreateTime = timeInSec
-        item.baseFields.baseUpdateTime = timeInSec
-
-        dao.insert(item)
-    }
-
-    override suspend fun delete(item: SettingsEntity) = dao.delete(item)
-
-    override suspend fun update(item: SettingsEntity){
-        item.baseFields.baseUpdateTime = getSecFromTime()
-        dao.update(item)
-    }
-
-    override suspend fun getOrInsertByUsedFor(usedFor: Int) :SettingsEntity?{
-        val s = dao.getByUsedFor(usedFor)
-
-        //若条目不存在，创建并返回
-//        if(s==null) {  //不要管这个黄色警告，s是有可能为null的，查询不出数据的时候就会
-//            if(usedFor == Cons.dbSettingsUsedForChangeList) {  //新插入的条目，肯定不用迁移，直接返回即可
-//                return insertChangeListSettingsThenReturnIt(usedFor)
-//            }//else if usedFor == other settings
 //
-//            if(usedFor == Cons.dbSettingsUsedForCommonGitConfig) {
-//                return insertCommonGitConfigSettingsThenReturnIt(usedFor)
-//            }
+//    override suspend fun insert(item: SettingsEntity) {
+//        val timeInSec = getSecFromTime()
+//        item.baseFields.baseCreateTime = timeInSec
+//        item.baseFields.baseUpdateTime = timeInSec
 //
-//            if(usedFor == Cons.dbSettingsUsedForEditor) {
-//                return insertEditorSettingsThenReturnIt(usedFor)
-//            }
-//        }
-
-        s?:throw RuntimeException("no settings for usedFor:"+usedFor)
-
-//        //检查是否需要迁移设置项
-//        val needUpdate = SettingsMigrator.migrateSettingsIfNeed(s)
-//        if(needUpdate) {
-//            update(s)
-//        }
-
-        return s
-    }
+//        dao.insert(item)
+//    }
+//
+//    override suspend fun delete(item: SettingsEntity) = dao.delete(item)
+//
+//    override suspend fun update(item: SettingsEntity){
+//        item.baseFields.baseUpdateTime = getSecFromTime()
+//        dao.update(item)
+//    }
+//
+//    override suspend fun getOrInsertByUsedFor(usedFor: Int) :SettingsEntity?{
+//        val s = dao.getByUsedFor(usedFor)
+//
+//        //若条目不存在，创建并返回
+////        if(s==null) {  //不要管这个黄色警告，s是有可能为null的，查询不出数据的时候就会
+////            if(usedFor == Cons.dbSettingsUsedForChangeList) {  //新插入的条目，肯定不用迁移，直接返回即可
+////                return insertChangeListSettingsThenReturnIt(usedFor)
+////            }//else if usedFor == other settings
+////
+////            if(usedFor == Cons.dbSettingsUsedForCommonGitConfig) {
+////                return insertCommonGitConfigSettingsThenReturnIt(usedFor)
+////            }
+////
+////            if(usedFor == Cons.dbSettingsUsedForEditor) {
+////                return insertEditorSettingsThenReturnIt(usedFor)
+////            }
+////        }
+//
+//        s?:throw RuntimeException("no settings for usedFor:"+usedFor)
+//
+////        //检查是否需要迁移设置项
+////        val needUpdate = SettingsMigrator.migrateSettingsIfNeed(s)
+////        if(needUpdate) {
+////            update(s)
+////        }
+//
+//        return s
+//    }
 //
 //    private suspend fun insertChangeListSettingsThenReturnIt(usedFor: Int): SettingsEntity {
 //        val cs = ChangeListSettings()
@@ -102,5 +103,9 @@ class SettingsRepositoryImpl(private val dao: SettingsDao) : SettingsRepository 
 //        //返回刚刚创建的SettingsEntity
 //        return newS
 //    }
+
+    override suspend fun subtractTimeOffset(offsetInSec:Long) {
+        dao.subtractTimeOffset(offsetInSec)
+    }
 
 }

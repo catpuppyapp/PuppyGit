@@ -1,0 +1,3 @@
+- Files screen support Import/Export from/to external apps which implemented system documents picker (e.g. Termux)
+- update russian translation (thx @triksterr)
+- fix some bugs

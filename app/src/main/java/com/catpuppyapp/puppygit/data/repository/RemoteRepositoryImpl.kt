@@ -26,11 +26,13 @@ import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.catpuppyapp.puppygit.utils.MyLog
 import com.catpuppyapp.puppygit.utils.createAndInsertError
+import com.catpuppyapp.puppygit.utils.forEachBetter
 import com.github.git24j.core.Remote
 import com.github.git24j.core.Repository
 
+private const val TAG = "RemoteRepositoryImpl"
+
 class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
-    private val TAG = "RemoteRepositoryImpl"
 
     override suspend fun getById(id: String): RemoteEntity? {
         val remoteFromDb = dao.getById(id)?:return null
@@ -38,7 +40,7 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
         try{
             syncRemoteInfoWithGit(remoteFromDb)
         }catch (e:Exception) {
-            MyLog.e(TAG, "#getById err:${e.stackTraceToString()}")
+            MyLog.e(TAG, "#getById err: ${e.stackTraceToString()}")
         }
 
         return remoteFromDb
@@ -65,7 +67,7 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
         try{
             syncRemoteInfoWithGit(remoteFromDb)
         }catch (e:Exception) {
-            MyLog.e(TAG, "#getByRepoIdAndRemoteName err:${e.stackTraceToString()}")
+            MyLog.e(TAG, "#getByRepoIdAndRemoteName err: ${e.stackTraceToString()}")
         }
 
         //即使同步不了信息，若数据库有，也应返回数据库的对象，要不然用来检查repoId和remoteName的代码就会出错，可能重复插入相同repoId+remoteName
@@ -73,11 +75,42 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
     }
 
     override suspend fun getLinkedRemoteDtoForCredentialList(credentialId: String): List<RemoteDtoForCredential> {
-        return dao.getLinkedRemoteDtoForCredentialList(credentialId)
+        val ret = dao.getLinkedRemoteDtoForCredentialList(credentialId)
+        setRemoteInfoForDtoList(ret)
+        return ret
     }
 
     override suspend fun getUnlinkedRemoteDtoForCredentialList(credentialId: String): List<RemoteDtoForCredential> {
-        return dao.getUnlinkedRemoteDtoForCredentialList(credentialId)
+        val ret = dao.getUnlinkedRemoteDtoForCredentialList(credentialId)
+        setRemoteInfoForDtoList(ret)
+        return ret
+    }
+
+    private suspend fun setRemoteInfoForDtoList(dtoList:List<RemoteDtoForCredential>) {
+        if(dtoList.isEmpty()) {
+            return
+        }
+
+        val repoDb = AppModel.dbContainer.repoRepository
+
+        for(it in dtoList){
+            try {
+                val repoFromDb = repoDb.getById(it.repoId)
+                if (repoFromDb == null) {
+                    MyLog.w(TAG, "#setRemoteInfoForDtoList warn: an invalid repo id '${it.repoId}' related by remote '${it.remoteName}', remote id =${it.remoteId}")
+                    continue
+                }
+
+                Repository.open(repoFromDb.fullSavePath).use { repo ->
+                    val remote = Libgit2Helper.resolveRemote(repo, it.remoteName)!!
+                    it.remoteFetchUrl = Libgit2Helper.getRemoteFetchUrl(remote)
+                    it.remotePushUrl = Libgit2Helper.getRemoteActuallyUsedPushUrl(remote)
+                }
+
+            } catch (e: Exception) {
+                MyLog.e(TAG, "#setRemoteInfoForDtoList err: update info for remote '${it.remoteName}' err, remoteId=${it.remoteId}, err=${e.stackTraceToString()}")
+            }
+        }
     }
 
     override suspend fun updateCredentialIdByRemoteId(remoteId: String, credentialId: String) {
@@ -102,7 +135,7 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
 
     override suspend fun getRemoteDtoListByRepoId(repoId: String): List<RemoteDto> {
         val listFromDb =  dao.getRemoteDtoListByRepoId(repoId)
-        val repoDb = AppModel.singleInstanceHolder.dbContainer.repoRepository
+        val repoDb = AppModel.dbContainer.repoRepository
         val repoFromDb = repoDb.getById(repoId)?:throw RuntimeException("no repo found by repoId '$repoId'")
         Repository.open(repoFromDb.fullSavePath).use { repo->
             val listFromGit = Libgit2Helper.getRemoteList(repo)
@@ -115,10 +148,10 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
             }
 
             if(willDelFromDb.isNotEmpty()) {
-                willDelFromDb.forEach { delete(RemoteEntity(id=it.remoteId)) }
+                willDelFromDb.forEachBetter { delete(RemoteEntity(id=it.remoteId)) }
             }
             if(willInsertToDb.isNotEmpty()) {
-                willInsertToDb.forEach mark@{
+                willInsertToDb.forEachBetter mark@{
                     try{
                         //查remote，若无，不插入db
                         val remote = Remote.lookup(repo, it)?:return@mark
@@ -126,8 +159,8 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
                         val remoteWillInsert = RemoteEntity(
                             repoId = repoId,
                             remoteName = it,
-                            remoteUrl = remote.url().toString(),
-                            pushUrl = remote.pushurl()?.toString()?:""
+                            remoteUrl = remote.url(),
+                            pushUrl = remote.pushurl()?:""
                         )
 
                         insert(remoteWillInsert)
@@ -148,17 +181,23 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
     }
 
     private suspend fun syncRemoteInfoWithGit(remoteFromDb:RemoteEntity) {
-        val repoDb = AppModel.singleInstanceHolder.dbContainer.repoRepository
+        val repoDb = AppModel.dbContainer.repoRepository
         val repoFromDb = repoDb.getById(remoteFromDb.repoId)?:throw RuntimeException("no repo found by remoteFromDb.repoId '${remoteFromDb.repoId}'")
         Repository.open(repoFromDb.fullSavePath).use { repo->
             val remoteFromGit = Libgit2Helper.resolveRemote(repo, remoteFromDb.remoteName)?:throw RuntimeException("resolve remote '${remoteFromDb.remoteName}' from git failed")
             //查RemoteEntity一般都是为了凭据，需要更新的字段其实很少
-            remoteFromDb.remoteUrl = remoteFromGit.url().toString()
-            remoteFromDb.pushUrl = remoteFromGit.pushurl()?.toString()?:""
+            remoteFromDb.remoteUrl = remoteFromGit.url()
+            remoteFromDb.pushUrl = remoteFromGit.pushurl()?:""
+
+            // if push url invalid, actually will use fetch url(remoteUrl), so set it to fetch url
+            if(remoteFromDb.pushUrl.isBlank()) {
+                remoteFromDb.pushUrl = remoteFromDb.remoteUrl
+                remoteFromDb.pushUrlTrackFetchUrl = true
+            }
         }
     }
 
-    private fun syncRemoteDtoInfoWithGit(repo:Repository, remotes:List<RemoteDto>) {
+    private suspend fun syncRemoteDtoInfoWithGit(repo:Repository, remotes:List<RemoteDto>) {
         updateRemoteDtoList(repo, remotes)
     }
 
@@ -169,7 +208,7 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
         }
 
         if(requireTransaction) {
-            AppModel.singleInstanceHolder.dbContainer.db.withTransaction {
+            AppModel.dbContainer.db.withTransaction {
                 act()
             }
         }else {
@@ -200,7 +239,7 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
         fetchCredentialId: String,
         pushCredentialId: String
     ) {
-        AppModel.singleInstanceHolder.dbContainer.db.withTransaction {
+        AppModel.dbContainer.db.withTransaction {
             dao.updateCredentialIdByRemoteId(remoteId, fetchCredentialId)
             dao.updatePushCredentialIdByRemoteId(remoteId, pushCredentialId)
         }
@@ -212,9 +251,27 @@ class RemoteRepositoryImpl(private val dao: RemoteDao) : RemoteRepository {
         newFetchCredentialId: String,
         newPushCredentialId: String
     ) {
-        AppModel.singleInstanceHolder.dbContainer.db.withTransaction {
+        AppModel.dbContainer.db.withTransaction {
             dao.updateCredentialIdByCredentialId(oldFetchCredentialId, newFetchCredentialId)
             dao.updatePushCredentialIdByCredentialId(oldPushCredentialId, newPushCredentialId)
         }
     }
+
+
+    override suspend fun subtractTimeOffset(offsetInSec:Long) {
+        dao.subtractTimeOffset(offsetInSec)
+    }
+
+    override suspend fun updateAllFetchAndPushCredentialId(fetchCredentialId: String, pushCredentialId: String) {
+        dao.updateAllFetchAndPushCredentialId(fetchCredentialId, pushCredentialId)
+    }
+
+    override suspend fun updateAllFetchCredentialId(fetchCredentialId: String) {
+        dao.updateAllFetchCredentialId(fetchCredentialId)
+    }
+
+    override suspend fun updateAllPushCredentialId(pushCredentialId: String) {
+        dao.updateAllPushCredentialId(pushCredentialId)
+    }
+
 }

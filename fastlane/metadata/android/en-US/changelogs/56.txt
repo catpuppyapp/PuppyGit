@@ -1,0 +1,2 @@
+- update Repos Screen: disable "Sync" and "Set Upstream" for not-cloned Repo
+- fix: copy a file which path contains '.' may failed

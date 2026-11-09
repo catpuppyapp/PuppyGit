@@ -1,0 +1,5 @@
+- upgrade dependencies: libgit2 to 1.9.2, openssl to 3.6.1
+- optimize english translation (pr #125, thx @clach04)
+- optimize code of `PullToRefreshBox` (pr #128, thx @msmt2018)
+- align c libs to 16KB page size
+- fix Automation service bug (issue #130)

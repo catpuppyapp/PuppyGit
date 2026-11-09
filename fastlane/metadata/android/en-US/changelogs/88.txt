@@ -1,0 +1,3 @@
+- popup keyboard when rename file and go to path at Files
+- optimize Editor reload check logic
+- Editor: fix change type indicator position wrong when RTL layout enabled

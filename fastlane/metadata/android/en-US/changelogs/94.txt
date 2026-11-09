@@ -1,0 +1,2 @@
+- remove unused function
+- fix: go to top/bottom buttons not work when showing err message

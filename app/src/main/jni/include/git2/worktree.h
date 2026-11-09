@@ -11,11 +11,12 @@
 #include "buffer.h"
 #include "types.h"
 #include "strarray.h"
+#include "checkout.h"
 
 /**
- * @file git2/worktrees.h
- * @brief Git worktree related functions
- * @defgroup git_commit Git worktree related functions
+ * @file git2/worktree.h
+ * @brief Additional working directories for a repository
+ * @defgroup git_commit Additional working directories for a repository
  * @ingroup Git
  * @{
  */
@@ -85,8 +86,9 @@ GIT_EXTERN(int) git_worktree_validate(const git_worktree *wt);
 typedef struct git_worktree_add_options {
 	unsigned int version;
 
-	int lock; /**< lock newly created worktree */
-	git_reference *ref; /**< reference to use for the new worktree HEAD */
+	int lock;		/**< lock newly created worktree */
+	int checkout_existing;	/**< allow checkout of existing branch matching worktree name */
+	git_reference *ref;	/**< reference to use for the new worktree HEAD */
 
 	/**
 	 * Options for the checkout.
@@ -94,8 +96,12 @@ typedef struct git_worktree_add_options {
 	git_checkout_options checkout_options;
 } git_worktree_add_options;
 
+/** Current version for the `git_worktree_add_options` structure */
 #define GIT_WORKTREE_ADD_OPTIONS_VERSION 1
-#define GIT_WORKTREE_ADD_OPTIONS_INIT {GIT_WORKTREE_ADD_OPTIONS_VERSION,0,NULL,GIT_CHECKOUT_OPTIONS_INIT}
+
+/** Static constructor for `git_worktree_add_options` */
+#define GIT_WORKTREE_ADD_OPTIONS_INIT { GIT_WORKTREE_ADD_OPTIONS_VERSION, \
+	0, 0, NULL, GIT_CHECKOUT_OPTIONS_INIT }
 
 /**
  * Initialize git_worktree_add_options structure
@@ -208,7 +214,10 @@ typedef struct git_worktree_prune_options {
 	uint32_t flags;
 } git_worktree_prune_options;
 
+/** Current version for the `git_worktree_prune_options` structure */
 #define GIT_WORKTREE_PRUNE_OPTIONS_VERSION 1
+
+/** Static constructor for `git_worktree_prune_options` */
 #define GIT_WORKTREE_PRUNE_OPTIONS_INIT {GIT_WORKTREE_PRUNE_OPTIONS_VERSION,0}
 
 /**
@@ -265,4 +274,5 @@ GIT_EXTERN(int) git_worktree_prune(git_worktree *wt,
 
 /** @} */
 GIT_END_DECL
+
 #endif
